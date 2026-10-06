@@ -1,5 +1,5 @@
 // river-tutorial.js - two guided turns of River against Ser Aldric.
-// The deal is set up so your turns look like ordinary ones (7 AP, then 4 and a Blink), and so
+// The deal is set up so your turns look like ordinary ones (7 stamina, then 4 and a Blink), and so
 // that Ser Aldric lays a card off on the Charter you found, which pays you. Ranks run 1 to 8,
 // two of each card.
 
@@ -18,8 +18,9 @@ function tutorialGame() {
   // nothing in Ser Aldric's hand makes a meld; his 2 of Moons fits the set of 2s you are about to lay down
   aldric.hand = [take(MOON, 2), take(DRAGON, 8), take(RAVEN, 1), take(TOWER, 3), take(MOON, 8), take(DRAGON, 6), take(TOWER, 7), take(RAVEN, 4)];
   g.discard = [take(RAVEN, 2)];
-  // the top of the deck in drawing order: your second draw, your buy, then quiet cards for Ser Aldric
-  const top = [take(RAVEN, 5), take(TOWER, 8), take(DRAGON, 4), take(TOWER, 1), take(RAVEN, 6), take(MOON, 1), take(DRAGON, 7), take(RAVEN, 3)];
+  // the top of the deck in drawing order: your second draw, your buy, the card your first quest draws,
+  // then quiet cards for Ser Aldric
+  const top = [take(RAVEN, 5), take(TOWER, 8), take(DRAGON, 5), take(DRAGON, 4), take(TOWER, 1), take(RAVEN, 6), take(MOON, 1), take(DRAGON, 7), take(RAVEN, 3)];
   shuffle(pool);
   g.deck = pool.concat(top.reverse());
   // charters
@@ -58,7 +59,7 @@ const TUT_STEPS = [
   // ---------------------------------------------------------------- your first turn
   {
     head: "Welcome to <b>Drakeharbour</b>. You win renown by completing <b>quests</b>.",
-    more: "Your quests are at the bottom right. They cost <b>resources</b>, which you get by working places in the <b>town</b>. Walking and working cost <b>action points</b> (AP), and you earn AP by playing cards onto <b>Charters</b>: new ones along the top, founded ones on the left.",
+    more: "Your quests are at the bottom right. They cost <b>resources</b>, which you get by working places in the <b>town</b>. Walking and working cost <b>stamina</b>, and you earn stamina by playing cards onto <b>Charters</b>: new ones along the top, founded ones on the left.",
     next: true, hi: () => ({ sel: ["#my-quests", "#town .place", "#offers", "#charters"] })
   },
   {
@@ -73,35 +74,35 @@ const TUT_STEPS = [
   },
   {
     head: "Select your three <b>2s</b>, then click the <b>Merchants' Guild</b>.",
-    more: "Three of a rank is a <b>set</b>, which is a meld. Founding a Charter with a meld gives 1 AP for each card, and 2 more because the Guild prefers a set. The Charter is yours now, and pays you 1 Gold every turn. There are two of every card, so any 2 can be laid off on it later.",
+    more: "Three of a rank, each a different suit, is a <b>set</b>, which is a meld. Founding a Charter with a meld gives 1 stamina for each card, and 2 more because the Guild prefers a set. The Charter is yours now, and pays you 1 Gold every turn. There are two of every card, and once a set is down any 2 can be laid off on it.",
     allow: k => k === "found", done: g => !!tutGuild(g),
     hi: g => ({ cards: g.players[0].hand.filter(c => !c.spell && c.r === 2).map(c => c.id), sel: [`.offer[data-i="${tutDisplay(g, "Merchants' Guild")}"]`] })
   },
   {
-    head: g => `You have <b>${g.t.ap} AP</b>. Walk to the <b>Market</b>: click the Forge, then the Market.`,
-    more: "Your quest <i>Host a banquet</i> needs 2 Gold, and the Market makes Gold. Each step costs 1 AP. The <b>Square</b> in the middle of town is a step from every place, so nowhere is more than 2 AP away.",
+    head: g => `You have <b>${g.t.ap} stamina</b>. Walk to the <b>Market</b>: click the Forge, then the Market.`,
+    more: "Your quest <i>Host a banquet</i> needs 2 Gold, and the Market makes Gold. Each step costs 1 stamina. The <b>Square</b> in the middle of town borders every place, so nowhere is more than two steps away.",
     allow: (k, i) => k === "move" && (i === FORGE || i === MARKET), done: g => !firstTurn(g) || g.players[0].pos === MARKET,
     hi: () => ({ sel: [`.place[data-sp="${FORGE}"]`, `.place[data-sp="${MARKET}"]`] })
   },
   {
-    head: "Click the <b>Market</b> twice. The first Gold costs <b>1 AP</b>, the second <b>2 AP</b>.",
-    more: "Each vendor raises its price as you buy from it this turn: 1 AP, then 2, then 3. Walk to another vendor and its price starts at 1 again.",
+    head: "Click the <b>Market</b> twice. The first Gold costs <b>1 stamina</b>, the second <b>2</b>.",
+    more: "Each vendor raises its price as you buy from it this turn: 1 stamina, then 2, then 3. Walk to another vendor and its price starts at 1 again.",
     allow: (k, i) => k === "work" && i === MARKET, done: g => !firstTurn(g) || g.players[0].res[GOLD] >= 2,
     hi: () => ({ sel: [`.place[data-sp="${MARKET}"]`, "#me-res"] })
   },
   {
-    head: "Click the <b>deck</b> to buy a card for <b>1 AP</b>.",
-    more: "The card stall is a vendor too, with its own price: 1 AP for your first card this turn, 2 for a second. You can buy two cards a turn, from the deck or the discard pile.",
+    head: "Click the <b>deck</b> to buy a card for <b>1 stamina</b>.",
+    more: "The card stall is a vendor too, with its own price: 1 stamina for your first card this turn, 2 for a second. You can buy two cards a turn, from the deck or the discard pile.",
     allow: k => k === "buy", done: g => !firstTurn(g) || g.t.buys >= 1, hi: () => ({ sel: ["#deck"] })
   },
   {
-    head: "Spend your last AP as you like, then press <b>Next</b>.",
-    more: "A third Gold would cost 3 AP now, so a step along the road is all your last AP buys.",
+    head: "Spend your last stamina as you like, then press <b>Next</b>.",
+    more: "A third Gold would cost 3 now, so a step is all your last stamina buys.",
     allow: k => ["move", "work", "buy", "refresh"].includes(k), next: true, hi: () => ({ sel: ["#me-ap"] })
   },
   {
     head: "Select the <b>6 of Dragons</b> and press <b>Discard &amp; end turn</b>. Then hand in <i>Host a banquet</i>.",
-    more: "Discarding a card ends your turn. Then you can hand in one quest you can pay for. Lady Velia favours Diplomacy, so it scores 4 extra renown.",
+    more: "Discarding a card ends your turn. Then you can hand in one quest you can pay for. Lady Velia favours Diplomacy, so it scores 4 extra renown. Completing a quest also draws you cards: 1 for a small quest, up to 3 for a big one.",
     allow: k => k === "end", done: g => !firstTurn(g),
     hi: g => { const c = tutCard(g, 0, 6); return { cards: c ? [c.id] : [], sel: ["#btn-end"] }; }
   },
@@ -122,7 +123,7 @@ const TUT_STEPS = [
   },
   {
     head: "Select the <b>7 of Moons</b> and click Ser Aldric's <b>Free Company</b>.",
-    more: "Your 7 extends his 4, 5, 6 run. Laying off on someone else's Charter gives you 2 AP, and its owner gets 1 resource. With two of every card, chances to lay off come up often: look for them every turn.",
+    more: "Your 7 extends his 4, 5, 6 run. Laying off on someone else's Charter gives you 2 stamina, and its owner gets 1 resource. With two of every card, chances to lay off come up often: look for them every turn.",
     allow: (k, i) => k === "layoff" && i === 1, done: g => !secondTurn(g) || (tutCompany(g) && tutCompany(g).cards.some(c => c.s === 1 && c.r === 7)),
     hi: g => { const c = tutCard(g, 1, 7); return { cards: c ? [c.id] : [], sel: tutCompany(g) ? [`.charter[data-id="${tutCompany(g).id}"]`] : [] }; }
   },
@@ -133,13 +134,13 @@ const TUT_STEPS = [
     hi: g => (typeof app !== "undefined" && app.targeting ? { sel: [`.place[data-sp="${LIBRARY}"]`] } : { cards: g.players[0].hand.filter(c => c.spell === "blink").map(c => c.id), sel: ["#btn-cast"] })
   },
   {
-    head: g => (g.players[0].pos === LIBRARY ? "Click the <b>Library</b> to work it once for <b>Lore</b>." : `You have <b>${g.t.ap} AP</b>. Walk to the <b>Library</b> and work it once for <b>Lore</b>.`),
+    head: g => (g.players[0].pos === LIBRARY ? "Click the <b>Library</b> to work it once for <b>Lore</b>." : `You have <b>${g.t.ap} stamina</b>. Walk to the <b>Library</b> and work it once for <b>Lore</b>.`),
     more: "Your quest <i>Bribe the magistrate</i> needs 2 Gold and 1 Lore, and you already have the Gold.",
     allow: (k, i) => k === "move" || (k === "work" && i === LIBRARY), done: g => !secondTurn(g) || g.players[0].res[LORE] >= 1,
     hi: g => ({ sel: [`.place[data-sp="${tutStep(g, LIBRARY)}"]`, `.place[data-sp="${LIBRARY}"]`] })
   },
   {
-    head: "Spend your last AP as you like, then press <b>Next</b>.",
+    head: "Spend your last stamina as you like, then press <b>Next</b>.",
     more: "Any Gold or Lore you gather now is a start on your next quest.",
     allow: k => ["move", "work", "buy", "found", "layoff", "refresh"].includes(k), next: true, hi: () => ({ sel: ["#me-ap"] })
   },
@@ -150,7 +151,7 @@ const TUT_STEPS = [
   },
   {
     head: "That's how the game goes. <b>Play on</b> against Ser Aldric, or go back to the menu.",
-    more: "A Charter nobody lays off on for three rounds fades. At the Tavern, look for the <b>sealed commission</b>, which pays more but hides what it needs, and for <b>sagas</b>, marked <b>Part 1/3</b>, quests in three parts. In a real game each round brings a <b>town event</b>, on the notice at the left of the town. The first to 90 renown ends the game at the end of that round.",
+    more: "A Charter nobody lays off on for three rounds fades. At the Tavern, look for the <b>sealed commission</b>, which pays more but hides what it needs, and for <b>sagas</b>, marked <b>Part 1/3</b>, quests in three parts. In a real game each round brings a <b>town event</b>, on the notice at the left of the town. The first to 100 renown ends the game at the end of that round.",
     finish: true, allow: () => true
   }
 ];

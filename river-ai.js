@@ -41,21 +41,28 @@ function useful(card, hand, g) {
   if (!card) return false;
   if (card.spell) return card.spell === "glamour" || !hand.some(c => c.spell);
   let same = 0;
-  const ranks = new Set();
-  for (const c of hand) { if (c.spell) continue; if (c.r === card.r) same++; if (c.s === card.s) ranks.add(c.r); }
+  const ranks = new Set(), suits = new Set([card.s]);
+  for (const c of hand) {
+    if (c.spell) continue;
+    if (c.r === card.r && !(distinct() && suits.has(c.s))) { same++; suits.add(c.s); }
+    if (c.s === card.s) ranks.add(c.r);
+  }
   if (same >= 2 && g.display.length) return true;
   const r = card.r;
   if (g.display.length && ((ranks.has(r - 1) && ranks.has(r - 2)) || (ranks.has(r + 1) && ranks.has(r + 2)) || (ranks.has(r - 1) && ranks.has(r + 1)))) return true;
   return g.charters.some(ch => RC.fits(card, ch));
 }
 
+// Are sets made of distinct suits? (The rule is the core's, set when a game's options are read.)
+const distinct = () => RC.isSet([{ s: 0, r: 1 }, { s: 0, r: 1 }, { s: 1, r: 1 }]) === false;
 // Every meld in a hand: sets (all 3- and 4-card ones) and runs (all lengths).
 function meldOptions(hand) {
   const out = [];
   const byRank = {}, bySuit = [[], [], [], []];
   for (const c of hand) { if (c.spell) continue; (byRank[c.r] = byRank[c.r] || []).push(c); bySuit[c.s].push(c); }
   for (const r in byRank) {
-    const grp = byRank[r];
+    // with distinct suits, one card of each suit
+    const grp = distinct() ? byRank[r].filter((c, i, a) => a.findIndex(x => x.s === c.s) === i) : byRank[r];
     if (grp.length >= 3) { out.push(grp.slice()); if (grp.length >= 4) for (let i = 0; i < grp.length; i++) out.push(grp.filter((_, j) => j !== i)); }
   }
   for (const all of bySuit) {
@@ -79,7 +86,10 @@ function wildMelds(hand) {
   if (!w) return [];
   const out = [], byRank = {}, bySuit = [[], [], [], []];
   for (const c of hand) { if (c.spell) continue; (byRank[c.r] = byRank[c.r] || []).push(c); bySuit[c.s].push(c); }
-  for (const r in byRank) if (byRank[r].length >= 2 && RC.isSet(byRank[r].concat([w]))) out.push(byRank[r].concat([w]));
+  for (const r in byRank) {
+    const grp = distinct() ? byRank[r].filter((c, i, a) => a.findIndex(x => x.s === c.s) === i).slice(0, 3) : byRank[r];
+    if (grp.length >= 2 && RC.isSet(grp.concat([w]))) out.push(grp.concat([w]));
+  }
   for (const all of bySuit) {
     all.sort((a, b) => a.r - b.r);
     const cs = all.filter((c, i) => !i || c.r !== all[i - 1].r);

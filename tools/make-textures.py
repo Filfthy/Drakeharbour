@@ -1,9 +1,9 @@
-# tools/make-textures.py - generates the tileable textures in img/:
-#   parchment.webp  aged parchment for cards, scrolls and the town map
+# tools/make-textures.py - generates the tileable textures in img/ (the parchment is cut from the user's
+# blank parchment by tools/make-parchment.py):
 #   wood.webp       dark wood for the table
 #   leather.webp    dark leather for player boards
 # Pure PIL (no numpy). Run: python tools/make-textures.py
-import os, random
+import math, os, random
 from PIL import Image, ImageFilter, ImageChops, ImageDraw
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "img")
@@ -72,30 +72,6 @@ def stretch(img, lo, hi):
     return img.point(lut)
 
 
-def parchment(size=512):
-    big = tile_blur(tile_smooth(5, 5, size, size), 24)     # broad staining
-    mid = tile_blur(tile_smooth(16, 16, size, size), 7)    # blotches
-    fine = tile_blur(noise(size, size), 0.7)               # grain
-    g = normalise(mix((big, 0.8), (mid, 0.35), (fine, 0.22)))
-    img = colourize(g, (216, 188, 138), (249, 239, 212))
-    # faint fibres
-    d = ImageDraw.Draw(img, "RGBA")
-    for _ in range(260):
-        x, y = random.randrange(size), random.randrange(size)
-        L = random.randint(6, 26)
-        dx, dy = random.uniform(-1, 1), random.uniform(-0.4, 0.4)
-        col = (150, 112, 62, random.randint(10, 26))
-        for k in range(L):
-            d.point(((x + dx * k) % size, (y + dy * k) % size), fill=col)
-    # a few foxing spots
-    for _ in range(14):
-        x, y, r = random.randrange(size), random.randrange(size), random.randint(2, 7)
-        for ox in (-size, 0, size):
-            for oy in (-size, 0, size):
-                d.ellipse((x - r + ox, y - r + oy, x + r + ox, y + r + oy), fill=(160, 112, 52, random.randint(10, 22)))
-    return tile_blur(img, 0.4)
-
-
 def wood(w=1024, h=512):
     # grain: noise stretched hard along x
     grain = tile_smooth(4, 90, w, h)
@@ -116,7 +92,10 @@ def leather(size=512):
 
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
-    parchment().save(os.path.join(OUT, "parchment.webp"), "WEBP", quality=88, method=6)
-    wood().save(os.path.join(OUT, "wood.webp"), "WEBP", quality=84, method=6)
-    leather().save(os.path.join(OUT, "leather.webp"), "WEBP", quality=84, method=6)
+    import sys
+    which = sys.argv[1:] or ["wood", "leather"]
+    if "wood" in which:
+        wood().save(os.path.join(OUT, "wood.webp"), "WEBP", quality=84, method=6)
+    if "leather" in which:
+        leather().save(os.path.join(OUT, "leather.webp"), "WEBP", quality=84, method=6)
     print("ok")

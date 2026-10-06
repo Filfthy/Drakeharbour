@@ -12,7 +12,7 @@
 //     laid off onto for two rounds fades first: its cards are shuffled back
 //     into the deck and the Charter goes back on offer.)
 //  2. Draw 2 cards, each from the deck or the top of the discard pile.
-//  3. Play cards for action points (AP), as well as 2 free AP:
+//  3. Play cards for stamina (AP in the code), as well as 2 free AP:
 //     - found a Charter: lay a meld (3+ of a rank, or 3+ in a row in one
 //       suit) on any Charter on offer. It's yours. 1 AP and 1 renown per
 //       card, and +2 AP if the meld is the Charter's preferred shape.
@@ -46,11 +46,11 @@ const TYPES = ["Adventure", "Diplomacy", "Devotion", "Scholarship", "Exploration
 
 // Spell cards. Glamour is the wild card: it is played in a meld, not cast.
 const SPELLS = {
-  blink: { name: "Blink", text: "Move your piece to any place, for no AP." },
+  blink: { name: "Blink", text: "Move your piece to any place, for no stamina." },
   glamour: { name: "Glamour", text: "A wild card. It stands in for any one card in a new meld, but that meld earns no shape bonus." },
   scry: { name: "Scry", text: "Draw two cards from the deck." },
   recall: { name: "Recall", text: "Take any card from the discard pile." },
-  haggle: { name: "Haggle", text: "Every vendor's price drops back to 1 AP." },
+  haggle: { name: "Haggle", text: "Every vendor's price drops back to 1 stamina." },
   renew: { name: "Renew", text: "One of your Charters starts its fading countdown again from full." }
 };
 
@@ -62,10 +62,10 @@ const EVENTS = [
   { key: "library", name: "The Scholars' Conclave", text: "The Library gives 1 more Lore.", place: LIBRARY },
   { key: "harbour", name: "Fair Winds", text: "Harbour trades give 2 for 1.", place: HARBOUR },
   { key: "bounty", name: "Bounty Night", text: "Each quest completed: +2 renown." },
-  { key: "feast", name: "The Guild Feast", text: "Lay-offs on others' Charters: +1 AP." },
-  { key: "charter", name: "Charter Week", text: "Founding a Charter: +2 AP." },
+  { key: "feast", name: "The Guild Feast", text: "Lay-offs on others' Charters: +1 stamina." },
+  { key: "charter", name: "Charter Week", text: "Founding a Charter: +2 stamina." },
   { key: "free", name: "Free Market", text: "Prices don't rise this round." },
-  { key: "progress", name: "The Royal Progress", text: "Everyone starts with 1 more AP." }
+  { key: "progress", name: "The Royal Progress", text: "Everyone starts with 1 more stamina." }
 ];
 
 // Preferred meld shapes for Charters.
@@ -73,7 +73,7 @@ const SHAPES = {
   set: { text: "a set", test: cs => isSet(cs) },
   run: { text: "a run", test: cs => isRun(cs) },
   run4: { text: "a run of 4 or more", test: cs => isRun(cs) && cs.length >= 4 },
-  set4: { text: "a set of 4 or more", test: cs => isSet(cs) && cs.length >= 4 },
+  set4: { text: "a set of 4", test: cs => isSet(cs) && cs.length >= 4 },
   long: { text: "5 or more cards", test: cs => cs.length >= 5 },
   // "low" and "high" are the bottom and top third of the ranks: 4 or lower and 9 or higher with 12 ranks
   low: { get text() { return `all cards ${LOW} or lower`; }, test: cs => cs.every(c => c.r <= LOW) },
@@ -149,6 +149,12 @@ const RV_DEFAULTS = {
   riseAfter: 1,     //   once this many have been made at the base price
   perVendor: true,  // each vendor (the Market, Forge, Temple, Library and the card stall) keeps its own count
   crowdAP: 0,       // extra AP to work a place where another player's piece stands
+  questCards: true,  // completing a quest draws cards: 1 for a small one, 2 for a middling one, 3 for a big one
+  setSuits: "found", // "distinct": a set's cards must all be different suits (so a set holds at most four);
+                     // "found": a new set needs different suits, but any card of its rank can be laid off on it
+  runAP: 0,          // extra AP for each card of a run, when it founds a Charter
+  buyDraw: 1,        // cards a purchase from the deck brings (up to your hand limit, and always at least one)
+  scryDraw: 2,       // cards Scry draws
   square: true,     // the Square in the middle of town: a step from every place, so nowhere is more than 2 AP away
   questLimit: 3, startQuests: 2, questsPerTurn: 1, favourBonus: 4,
   qrowSize: 4,      // quests on offer at the Tavern
@@ -157,7 +163,7 @@ const RV_DEFAULTS = {
   sagas: true,      // three-part sagas among the quests
   refresh: true,    // the oldest quest on offer leaves the Tavern each round
   events: true,     // a town event each round
-  handLimit: 9, resCap: 10, target: 90, maxRounds: 40
+  handLimit: 9, resCap: 10, target: 100, maxRounds: 40
 };
 
 function shuffle(a, rnd = Math.random) {
@@ -169,9 +175,9 @@ function shuffle(a, rnd = Math.random) {
 // A meld is 3 or more cards of one rank (a set), or 3 or more in a row in one suit (a run).
 // One Glamour may stand in for a card. Other spells never meld.
 // With two copies of each card, a set can hold two of a suit (up to 8 cards).
-let COPIES = 1, LOW = 4, HIGH = 9;
+let COPIES = 1, LOW = 4, HIGH = 9, SET_DISTINCT = false, SET_LAYOFF_DISTINCT = false;
 // The deck's shape, used by the meld rules: copies of each card, and what counts as low and high.
-function deckShape(o) { COPIES = o.copies || 1; LOW = Math.round(o.ranks / 3); HIGH = o.ranks - LOW + 1; }
+function deckShape(o) { COPIES = o.copies || 1; LOW = Math.round(o.ranks / 3); HIGH = o.ranks - LOW + 1; SET_DISTINCT = o.setSuits === "distinct" || o.setSuits === "found"; SET_LAYOFF_DISTINCT = o.setSuits === "distinct"; }
 const isWild = c => c.spell === "glamour";
 function parts(cs) {
   const nat = [], wild = [];
@@ -180,7 +186,10 @@ function parts(cs) {
 }
 function isSet(cs) {
   const m = cs.length >= 3 && parts(cs);
-  return !!m && (!m.wild || cs.length <= 4 * COPIES) && m.nat.every(c => c.r === m.nat[0].r);
+  if (!m || !m.nat.every(c => c.r === m.nat[0].r)) return false;
+  // with distinct suits, no suit twice, so a set holds four at most (a Glamour stands in for a missing suit)
+  if (SET_DISTINCT) return cs.length <= 4 && new Set(m.nat.map(c => c.s)).size === m.nat.length;
+  return !m.wild || cs.length <= 4 * COPIES;
 }
 function isRun(cs, ranks = 12) {
   const m = cs.length >= 3 && parts(cs);
@@ -205,7 +214,7 @@ function placeWild(cs, ranks = 12) {
     r = nat[0].r;
     const have = [0, 0, 0, 0];
     nat.forEach(c => have[c.s]++);
-    s = [0, 1, 2, 3].find(x => have[x] < COPIES);
+    s = [0, 1, 2, 3].find(x => have[x] < (SET_DISTINCT ? 1 : COPIES));
     if (s == null) s = 0;
   } else {
     const rs = nat.map(c => c.r).sort((a, b) => a - b);
@@ -220,7 +229,7 @@ const unplace = c => (c.spell ? { id: c.id, s: -1, r: 0, spell: c.spell } : c);
 // Would this card extend a founded Charter's meld? (Spells are never laid off.)
 function fits(card, ch) {
   if (card.spell) return false;
-  if (ch.kind === "set") return card.r === ch.cards[0].r;
+  if (ch.kind === "set") return card.r === ch.cards[0].r && !(SET_LAYOFF_DISTINCT && ch.cards.some(c => c.s === card.s));
   if (card.s !== ch.cards[0].s) return false;
   let lo = 99, hi = 0;
   for (const c of ch.cards) { if (c.r < lo) lo = c.r; if (c.r > hi) hi = c.r; }
@@ -265,7 +274,7 @@ class RiverGame {
     this.endTriggered = false;
     this.stats = { founds: 0, shapeHits: 0, layoffs: 0, ownLayoffs: 0, faded: 0, casts: 0, spells: {}, buys: 0, moves: 0, quests: 0, offType: 0,
       fromWork: 0, fromRent: 0, fromOwner: 0, swaps: 0, works: new Array(NPL).fill(0), apSpent: 0, apWasted: 0, discardDraws: 0, capped: 0, charterLife: 0,
-      sealedTaken: 0, sealedDone: 0, sagaDone: [0, 0, 0], torn: 0, expired: 0 };
+      sealedTaken: 0, sealedDone: 0, sagaDone: [0, 0, 0], torn: 0, expired: 0, foundSets: 0, foundRuns: 0, layoffSets: 0, layoffRuns: 0, questCards: 0 };
     for (const k in SPELLS) this.stats.spells[k] = 0;
     this.startTurn();
   }
@@ -356,10 +365,10 @@ class RiverGame {
     const ch = { id: this.nextCharter++, def, owner: p, kind: isSet(cs) ? "set" : "run", cards: placeWild(cs, o.ranks), touched: this.turnCount, born: this.turnCount };
     this.charters.push(ch);
     this.refillDisplay();
-    this.t.ap += cs.length * o.meldAP + (hit ? o.shapeAP : 0) + (this.ev("charter") ? 2 : 0);
+    this.t.ap += cs.length * o.meldAP + (hit ? o.shapeAP : 0) + (this.ev("charter") ? 2 : 0) + (ch.kind === "run" ? cs.length * (o.runAP || 0) : 0);
     pl.renown += cs.length * o.meldRenown;
     if (wild) { this.t.spellUsed = true; if (this.stats) { this.stats.casts++; this.stats.spells.glamour++; } }
-    if (this.stats) { this.stats.founds++; if (hit) this.stats.shapeHits++; }
+    if (this.stats) { this.stats.founds++; this.stats[ch.kind === "set" ? "foundSets" : "foundRuns"]++; if (hit) this.stats.shapeHits++; }
     return { ch, shapeHit: hit };
   }
 
@@ -370,6 +379,7 @@ class RiverGame {
     pl.hand = pl.hand.filter(x => x.id !== id);
     ch.cards.push(c);
     ch.touched = this.turnCount;
+    if (this.stats) this.stats[ch.kind === "set" ? "layoffSets" : "layoffRuns"]++;
     if (ch.owner === p) { this.t.ap += o.ownLayoffAP; if (this.stats) this.stats.ownLayoffs++; }
     else {
       this.t.ap += o.layoffAP + (this.ev("feast") ? 1 : 0);
@@ -399,7 +409,7 @@ class RiverGame {
     this.t.spellUsed = true;
     const got = [];
     if (k === "blink") pl.pos = arg;
-    else if (k === "scry") for (let n = 0; n < 2; n++) { const d = this.draw1(); if (d) { pl.hand.push(d); got.push(d); } }
+    else if (k === "scry") for (let n = 0; n < (this.o.scryDraw || 2); n++) { const d = this.draw1(); if (d) { pl.hand.push(d); got.push(d); } }
     else if (k === "recall") {
       const i = Math.max(0, Math.min(this.discard.length - 1, arg == null ? this.discard.length - 1 : arg));
       const d = this.discard.splice(i, 1)[0];
@@ -432,8 +442,14 @@ class RiverGame {
   buy(p, from) {
     if (!this.canBuy(p)) throw new Error("can't buy");
     let c = null;
+    const pl = this.pl(p);
+    this.lastBought = [];
     if (from === "discard" && this.discard.length) c = this.discard.pop(); else c = this.draw1();
-    if (c) this.pl(p).hand.push(c);
+    if (c) { pl.hand.push(c); this.lastBought.push(c); }
+    if (from !== "discard") for (let k = Math.min(this.o.buyDraw || 1, Math.max(1, this.o.handLimit + 1 - pl.hand.length + 1)) - 1; k > 0; k--) {
+      const d = this.draw1();
+      if (d) { pl.hand.push(d); this.lastBought.push(d); }
+    }
     const cost = this.buyPrice();
     this.t.ap -= cost;
     this.t.buys++;
@@ -549,7 +565,14 @@ class RiverGame {
     return !!q && p === this.turn && this.t.discarded && this.t.handed < this.o.questsPerTurn && q.need.every((n, r) => pl.res[r] >= n);
   }
 
-  // Hand in a quest. Completing part of a saga hands you the next part.
+  // The cards a quest draws when it's completed: 1 for a small one (3 resources), 2 for a middling
+  // one (4 or 5), 3 for a big one (6 or more).
+  questCards(q) {
+    if (!this.o.questCards) return 0;
+    const n = q.need.reduce((a, b) => a + b, 0);
+    return n <= 3 ? 1 : n <= 5 ? 2 : 3;
+  }
+  // Hand in a quest. Completing part of a saga hands you the next part; with questCards, it draws you cards.
   handIn(p, qi) {
     if (!this.canHandIn(p, qi)) return false;
     const pl = this.pl(p), q = pl.quests[qi];
@@ -560,6 +583,9 @@ class RiverGame {
     pl.done.push(q);
     this.t.handed++;
     this.lastNext = null;
+    this.lastDrawn = [];
+    for (let k = this.questCards(q); k > 0; k--) { const d = this.draw1(); if (d) { pl.hand.push(d); this.lastDrawn.push(d); } }
+    if (this.stats) this.stats.questCards += this.lastDrawn.length;
     if (q.saga != null && q.part < 2) { this.lastNext = sagaPart(q.saga, q.part + 1); pl.quests.push(this.lastNext); }
     if (this.stats) {
       this.stats.quests++;

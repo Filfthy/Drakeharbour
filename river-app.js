@@ -10,7 +10,7 @@ const RESKEY = ["gold", "steel", "faith", "lore"];
 const PLACEKEY = ["market", "forge", "tavern", "temple", "library", "harbour", "square"];
 const TYPEKEY = ["adventure", "diplomacy", "devotion", "scholarship", "exploration"];
 const CHARKEY = { "Ser Aldric": "aldric", "Lady Velia": "velia", "Brother Anselm": "anselm", "Magister Orrin": "orrin", "Kestra": "kestra" };
-const SHAPE_SHORT = { set: "Set", run: "Run", run4: "Run of 4+", set4: "Set of 4+", long: "5+ cards", get low() { return `${LOW} or lower`; }, get high() { return `${HIGH} or higher`; } };
+const SHAPE_SHORT = { set: "Set", run: "Run", run4: "Run of 4+", set4: "Set of 4", long: "5+ cards", get low() { return `${LOW} or lower`; }, get high() { return `${HIGH} or higher`; } };
 // The town on the map (img/map.webp, from art/town-map-plain.webp, 1672 pixels wide, shown 1600 wide):
 // for each place, where its name banner sits and the building you can click (centre, width, height),
 // in the map's own pixels. The places go round the ring road in this order.
@@ -51,6 +51,11 @@ const load = (k, d) => { try { const v = localStorage.getItem("rv_" + k); return
 const save = (k, v) => { try { localStorage.setItem("rv_" + k, JSON.stringify(v)); } catch (e) { /* ignore */ } };
 const ic = k => `<i class="ic ic-${k}"></i>`;
 const tok = r => `<span class="tok r${r}">${ic(RESKEY[r])}</span>`;
+// Stamina (AP in the code) is a token too. A price shows one token for each point (up to five);
+// a gain shows "+n" and one token.
+const stTok = (cls = "") => `<span class="tok st${cls ? " " + cls : ""}">${ic("stamina")}</span>`;
+const stCost = n => `<span class="stc">${n <= 5 ? stTok().repeat(n) : `${n}×${stTok()}`}</span>`;
+const stGain = n => `<span class="stc">+${n}${stTok()}</span>`;
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const ROMAN = ["I", "II", "III"];
 const cardTxt = c => (c.spell ? `a ${SPELLS[c.spell].name}` : `the ${c.r} of ${SUITS[c.s]}s`);
@@ -94,7 +99,9 @@ function fadeRing(left, life, tag = "div") {
     : `<b>${plural(left, "round")} left</b><br>It fades if nobody lays off on it for that long. A lay-off fills the ring again.`;
   return `<${tag} class="fade ${lvl}" data-tip="${tip}"><svg class="ring" viewBox="0 0 24 24"><circle class="rim" cx="${c}" cy="${c}" r="${r + 1}"/>${s}</svg></${tag}>`;
 }
-function backEl(size = "") { const e = document.createElement("div"); e.className = "card back " + size; e.innerHTML = ic("back"); return e; }
+// A card face down. The back is shown four ways (as drawn, upside down, mirrored, both), so cards side by side
+// differ: v picks one, or any at random.
+function backEl(size = "", v = Math.floor(Math.random() * 4)) { const e = document.createElement("div"); e.className = `card back bv${v} ${size}`; return e; }
 function tokEl(r) { const t = document.createElement("span"); t.className = `tok r${r}`; t.innerHTML = ic(RESKEY[r]); return t; }
 // A player's piece: their painted miniature on a ring of their colour, or a plain pawn.
 function pawnEl(p) {
@@ -163,6 +170,8 @@ class App {
     SPEED = this.speed;
     this.fs = Math.max(0, Math.min(2, load("fs", 0)));
     this.fullStart = load("fullstart", true);
+    this.panels = load("panels", "tinted");
+    this.scenery = load("scenery", !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches));
     this.lines = [];
     this.events = [];
     this.sel = new Set();
@@ -181,6 +190,7 @@ class App {
     $("btn-cast").onclick = () => this.askCast();
     $("btn-clear").onclick = () => { this.sel.clear(); this.targeting = null; this.clearHint(); this.render(); };
     $("btn-reoffer").onclick = e => { e.stopPropagation(); this.refreshCharters(); };
+    $("btn-reoffer").innerHTML = $("btn-request").innerHTML = `Fresh ${stCost(1)}`;
     $("btn-request").onclick = e => { e.stopPropagation(); this.refreshQuests(); };
     $("btn-undo").onclick = e => { e.currentTarget.blur(); this.undoLast(); };
     $("btn-end").onclick = () => this.endMyTurn();
@@ -214,6 +224,9 @@ class App {
     window.addEventListener("resize", () => this.fit());
     this.fit();
     this.setFs(this.fs);
+    this.setPanels(this.panels);
+    Scenery.init($("mapfx"), () => !document.hidden, $("mapfolk"));
+    Scenery.set(this.scenery);
     this.audioUi();
     this.fullUi();
     this.showTitle();
@@ -269,6 +282,15 @@ class App {
     $("btn-fs-down").title = `Smaller text (now ${FS_NAMES[this.fs]})`;
     $("btn-fs-up").title = `Bigger text (now ${FS_NAMES[this.fs]})`;
     if (this.tut) this.tut.place();
+    if (this.g) this.renderNotice(this.view || this.g);
+  }
+
+  // How see-through the frames over the map are: clear, tinted or dark.
+  setPanels(v) {
+    this.panels = ["clear", "tinted", "dark"].includes(v) ? v : "tinted";
+    save("panels", this.panels);
+    $("stage").classList.remove("panels-clear", "panels-tinted", "panels-dark");
+    $("stage").classList.add("panels-" + this.panels);
   }
 
   // Volume sliders for the music and the effects: on the start screen, and under the music button.
@@ -382,6 +404,8 @@ class App {
       if (k === "fs") this.setFs(v);
       else if (k === "sound") { Music.setSound(v); this.audioUi(); }
       else if (k === "full") { this.fullStart = v; save("fullstart", v); if (v !== !!this.fullEl()) this.toggleFull(); }
+      else if (k === "panels") this.setPanels(v);
+      else if (k === "scenery") { this.scenery = v; save("scenery", v); Scenery.set(v); }
       else { this[k] = v; save(k, v); if (k === "speed") SPEED = v; }
       b.parentElement.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
     });
@@ -402,6 +426,8 @@ class App {
     const canFull = document.fullscreenEnabled || document.webkitFullscreenEnabled;
     this.panel(`<h2>Settings</h2>
       <div class="opt"><span>Text size</span>${this.seg("fs", [0, 1, 2], FS_NAMES, this.fs)}</div>
+      <div class="opt"><span>Panels</span>${this.seg("panels", ["clear", "tinted", "dark"], ["Clear", "Tinted", "Dark"], this.panels)}</div>
+      <div class="opt"><span>Map</span>${this.seg("scenery", [true, false], ["Animated", "Still"], this.scenery)}</div>
       <div class="vols">${this.volRows()}</div>
       <div class="opt"><span>Sound</span>${this.seg("sound", [true, false], ["On", "Off"], Music.sound)}</div>
       <div class="opt"><span>Speed</span>${this.seg("speed", [1, 0.55], ["Normal", "Fast"], this.speed)}</div>
@@ -419,21 +445,23 @@ class App {
     this.panel(`<h2>How to play</h2>
       ${sec("The goal", `<p>Complete <b>quests</b> for renown. The first to ${o.target} renown ends the game at the end of that round, and the most renown wins.</p>`, true)}
       ${sec("Your turn", `<ol><li><b>Rent:</b> each Charter you own pays you 1 of its resource.</li><li><b>Draw 2 cards</b>, from the deck or the top of the discard pile.</li>
-        <li><b>Play cards</b> for action points (AP). You start with ${o.freeAP}. You may also cast one spell.</li>
-        <li><b>Spend AP:</b> walk a step for 1 AP, round the ring road or in and out of the <b>Square</b> in the middle of town, which is a step from every place. Nowhere is more than 2 AP away. Each <b>vendor</b> (the Market, Forge, Temple, Library and the card stall) charges 1 AP for your first purchase there this turn, then 2, then 3. Walk to another vendor to start at 1 again.</li>
+        <li><b>Play cards</b> for <b>stamina</b> ${stTok()}. You start each turn with ${o.freeAP}. You may also cast one spell.</li>
+        <li><b>Spend stamina:</b> a step costs 1, to a district next to yours or into the <b>Square</b> in the middle of town, which borders every place. Nowhere is more than two steps away. Each <b>vendor</b> (the Market, Forge, Temple, Library and the card stall) charges 1 stamina for your first purchase there this turn, then 2, then 3. Walk to another vendor to start at 1 again.</li>
         <li><b>Discard a card</b> to end your turn, then hand in one quest.</li></ol>`)}
-      ${sec("Melds and Charters", `<ul><li>A <b>meld</b> is 3 or more cards of one rank, or 3 or more in a row in one suit. There are two of every card, so a set keeps growing: any card of its rank lays off onto it.</li>
-        <li><b>Found</b> a Charter by laying a meld on one on offer: 1 AP and 1 renown per card, and ${o.shapeAP} AP more for its preferred shape.</li>
-        <li><b>Lay off</b> a card that extends a founded Charter: ${o.layoffAP} AP on someone else's (its owner gets 1 resource), ${o.ownLayoffAP} AP on your own.</li>
+      ${sec("Melds and Charters", `<ul><li>A <b>meld</b> is a <b>set</b>: 3 or 4 cards of one rank, each a different suit; or a <b>run</b>: 3 or more in a row in one suit.</li>
+        <li>Once a set is down, any card of its rank can be laid off on it, a second copy of a suit too. A run takes the next card at either end.</li>
+        <li><b>Found</b> a Charter by laying a meld on one on offer: 1 stamina and 1 renown per card, and ${o.shapeAP} stamina more for its preferred shape.</li>
+        <li><b>Lay off</b> a card that extends a founded Charter: ${o.layoffAP} stamina on someone else's (its owner gets 1 resource), ${o.ownLayoffAP} on your own.</li>
         <li>A Charter nobody lays off on for ${o.life} rounds <b>fades</b>, and its cards go back into the deck.</li>
         <li>A <b>Glamour</b> can stand in for one card in a new meld, but that meld earns no shape bonus.</li></ul>`)}
       ${sec("Spells", `<p>One spell a turn, after your draws. Select it and press <b>Cast</b>. A Glamour counts when you meld it.</p>
         <ul>${Object.values(SPELLS).map(s => `<li><b>${s.name}:</b> ${s.text}</li>`).join("")}</ul>`)}
-      ${sec("The town", `<ul><li>Market: Gold. Forge: Steel. Temple: Faith. Library: Lore.</li><li>Tavern: take a quest. You can hold ${o.questLimit}. Or pay 1 AP there for fresh quests on offer.</li><li>Harbour: trade 1 resource for another.</li>
-        <li>From anywhere, pay 1 AP to replace the Charters on offer with fresh ones.</li>
+      ${sec("The town", `<ul><li>Market: Gold. Forge: Steel. Temple: Faith. Library: Lore.</li><li>Tavern: take a quest. You can hold ${o.questLimit}. Or pay 1 stamina there for fresh quests on offer.</li><li>Harbour: trade 1 resource for another.</li>
+        <li>From anywhere, pay 1 stamina to replace the Charters on offer with fresh ones.</li>
         <li>Each round brings a <b>town event</b>, on the notice at the left of the town. It holds for everyone that round:</li></ul>
         <ul class="events">${EVENTS.map(e => `<li><b>${e.name}:</b> ${e.text}</li>`).join("")}</ul>`)}
-      ${sec("Quests and limits", `<ul><li>Hand in one quest a turn, after your discard.</li><li>Your character's favourite kind of quest scores ${o.favourBonus} extra renown.</li>
+      ${sec("Quests and limits", `<ul><li>Hand in one quest a turn, after your discard.</li>
+        <li>Completing a quest draws you cards: 1 for a small quest (3 resources or fewer), 2 for one needing 4 or 5, and 3 for one needing 6 or more.</li><li>Your character's favourite kind of quest scores ${o.favourBonus} extra renown.</li>
         <li>A <b>sealed commission</b> waits at the Tavern. What it needs stays hidden until you take it, and it pays about a quarter more.</li>
         <li><b>Sagas</b> (marked <span class="qbadge">Part 1/3</span>) come in three parts. Completing one hands you the next, worth more but of a different kind.</li>
         <li>The quest on offer longest leaves the Tavern at the start of each round.</li>
@@ -465,17 +493,17 @@ class App {
     const g = this.view || this.g, d = ch ? ch.def : def, me = g.players[0];
     const rows = [];
     if (ch) rows.push(["charter", `Owner: <b>${ch.owner === 0 ? "you" : g.players[ch.owner].character.name}</b>`]);
-    else rows.push(["charter", "<b>On offer.</b> Found it with any meld: 1 AP and 1 renown a card."]);
+    else rows.push(["charter", "<b>On offer.</b> Found it with any meld: 1 stamina and 1 renown a card."]);
     rows.push([RESKEY[d.res], `Its owner gets <b>1 ${RES[d.res]}</b> each turn.`]);
-    rows.push(["ap", `Prefers <b>${SHAPES[d.shape].text}</b>: +${g.o.shapeAP} AP when founded that way.`]);
+    rows.push([stTok(), `Prefers <b>${SHAPES[d.shape].text}</b>: +${g.o.shapeAP} stamina when founded that way.`]);
     if (ch) {
       const left = g.roundsLeft(ch), ext = extenders(g, ch), mine = me.hand.filter(c => fits(c, ch));
       rows.push([fadeRing(left, g.o.life, "span"), left <= 0 ? "<b>Fades</b> at its owner's next turn unless someone lays off on it." : `Fades in <b>${plural(left, "round")}</b> if nobody lays off on it.`]);
-      rows.push(["buy", ext.length ? `Lay off: <b>${ext.join(" or ")}</b>. ${ch.owner === 0 ? `+${g.o.ownLayoffAP} AP for you.` : `+${g.o.layoffAP} AP for you, 1 ${RES[d.res]} for its owner.`}` : "Nothing more can be laid off on it."]);
+      rows.push(["buy", ext.length ? `Lay off: <b>${ext.join(" or ")}</b>. ${ch.owner === 0 ? `+${g.o.ownLayoffAP} stamina for you.` : `+${g.o.layoffAP} stamina for you, 1 ${RES[d.res]} for its owner.`}` : "Nothing more can be laid off on it."]);
       if (mine.length) rows.push(["quest", `You hold <b>${cardsTxt(mine)}</b>.`]);
     } else {
       const ms = bigMelds(me.hand).slice(0, 3);
-      if (ms.length) rows.push(["quest", `Your melds: ${ms.map(m => `<b>${cardsTxt(m)}</b> (${m.length * g.o.meldAP + (shapeHit(d, m) ? g.o.shapeAP : 0)} AP)`).join("; ")}.`]);
+      if (ms.length) rows.push(["quest", `Your melds: ${ms.map(m => `<b>${cardsTxt(m)}</b> (${m.length * g.o.meldAP + (shapeHit(d, m) ? g.o.shapeAP : 0)} stamina)`).join("; ")}.`]);
     }
     this.panel(`<div class="lens-head">${tok(d.res)}<h2>${d.name}</h2></div>
       <div class="facts">${rows.map(([k, t]) => `${k.startsWith("<") ? k : ic(k)}<div>${t}</div>`).join("")}</div>
@@ -489,6 +517,7 @@ class App {
       <div class="facts">${ic(TYPEKEY[q.type])}<div>${/^[AEIOU]/.test(TYPES[q.type]) ? "An" : "A"} <b>${TYPES[q.type]}</b> quest.${fav ? ` Your favourite kind: <b>+${g.o.favourBonus} renown</b>.` : ""}</div>
       ${ic("quest")}<div>Needs ${needTxt(q.need)} &nbsp;·&nbsp; you have ${needTxt(me.res) || "nothing"}</div>
       ${ic("renown")}<div>Worth <b>${q.pts + (fav ? g.o.favourBonus : 0)} renown</b>. Hand it in after your discard.</div>
+      ${g.questCards(q) ? `<span class="qcards big">${g.questCards(q)}</span><div>Completing it draws you <b>${plural(g.questCards(q), "card")}</b>.</div>` : ""}
       ${q.saga != null ? `${ic("quest")}<div>Part <b>${q.part + 1} of 3</b> of the saga <i>${SAGAS[q.saga].name}</i>. ${q.part < 2 ? "Completing it hands you the next part." : "The last part."}</div>` : ""}
       ${q.sealed ? `${ic("seal")}<div>A <b>sealed commission</b>, worth more than an open quest of its size.</div>` : ""}</div>
       <div class="close-hint">Click anywhere to close</div>`, "lens");
@@ -608,11 +637,11 @@ class App {
       };
     };
     wrap("draw", (pre, [p, from], c) => (!c ? [] : from === "discard" ? `${N(p)} took ${cardTxt(c)} from the discard pile.` : p === 0 ? `${N(0)} drew ${cardTxt(c)}.` : `${N(p)} drew a card.`));
-    wrap("found", (pre, [p], r) => `${N(p)} founded the <i>${r.ch.def.name}</i>${r.ch.cards.some(c => c.spell) ? " with a Glamour" : ""}: +${r.ch.cards.length * g.o.meldAP + (r.shapeHit ? g.o.shapeAP : 0)} AP, +${r.ch.cards.length * g.o.meldRenown} renown.`);
+    wrap("found", (pre, [p], r) => `${N(p)} founded the <i>${r.ch.def.name}</i>${r.ch.cards.some(c => c.spell) ? " with a Glamour" : ""}: +${r.ch.cards.length * g.o.meldAP + (r.shapeHit ? g.o.shapeAP : 0)} stamina, +${r.ch.cards.length * g.o.meldRenown} renown.`);
     wrap("layoff", (pre, [p, id, chId]) => {
       const c = pre.pl[p].hand.find(x => x.id === id), ch = pre.charters.find(x => x.id === chId);
-      if (ch.owner === p) return `${N(p)} laid ${cardTxt(c)} on ${p === 0 ? "your" : "their"} own <i>${ch.def.name}</i>: +${g.o.ownLayoffAP} AP.`;
-      return `${N(p)} laid ${cardTxt(c)} on ${whose(ch.owner)} <i>${ch.def.name}</i>: +${g.o.layoffAP} AP, and 1 ${RES[ch.def.res]} for ${ch.owner === 0 ? "you" : app.pname(ch.owner)}.`;
+      if (ch.owner === p) return `${N(p)} laid ${cardTxt(c)} on ${p === 0 ? "your" : "their"} own <i>${ch.def.name}</i>: +${g.o.ownLayoffAP} stamina.`;
+      return `${N(p)} laid ${cardTxt(c)} on ${whose(ch.owner)} <i>${ch.def.name}</i>: +${g.o.layoffAP} stamina, and 1 ${RES[ch.def.res]} for ${ch.owner === 0 ? "you" : app.pname(ch.owner)}.`;
     });
     wrap("cast", (pre, [p, id, arg], got) => {
       const k = pre.pl[p].hand.find(x => x.id === id).spell, nm = `<b>${SPELLS[k].name}</b>`;
@@ -624,8 +653,8 @@ class App {
     });
     wrap("buy", (pre, [p, from], c) => (from === "discard" && c ? `${N(p)} bought ${cardTxt(c)} from the discard pile.` : p === 0 && c ? `${N(0)} bought ${cardTxt(c)}.` : `${N(p)} bought a card.`));
     wrap("move", (pre, [p, dest]) => `${N(p)} walked to the ${PLACES[dest]}.`);
-    wrap("refreshQuests", (pre, [p]) => `${N(p)} paid 1 AP for fresh quests at the Tavern.`);
-    wrap("refreshCharters", (pre, [p]) => `${N(p)} paid 1 AP for fresh Charters on offer.`);
+    wrap("refreshQuests", (pre, [p]) => `${N(p)} paid 1 stamina for fresh quests at the Tavern.`);
+    wrap("refreshCharters", (pre, [p]) => `${N(p)} paid 1 stamina for fresh Charters on offer.`);
     wrap("work", (pre, [p, arg]) => {
       const sp = pre.pl[p].pos, pl = g.players[p];
       if (PRODUCES[sp] >= 0) return `${N(p)} worked the ${PLACES[sp]}: +1 ${RES[PRODUCES[sp]]}.`;
@@ -639,7 +668,8 @@ class App {
     wrap("handIn", (pre, [p, qi], ok) => {
       if (!ok) return [];
       const q = pre.pl[p].quests[qi], fav = q.type === g.players[p].character.favour;
-      const out = [`${N(p)} completed <i>${q.name}</i>: +${q.pts + (fav ? g.o.favourBonus : 0)} renown.${g.lastNext ? ` <i>${SAGAS[q.saga].name}</i> continues: <i>${g.lastNext.name}</i>.` : ""}`];
+      const drew = g.lastDrawn || [], got = !drew.length ? "" : p === 0 ? `, and drew ${drew.map(cardTxt).join(" and ")}` : `, and drew ${plural(drew.length, "card")}`;
+      const out = [`${N(p)} completed <i>${q.name}</i>: +${q.pts + (fav ? g.o.favourBonus : 0)} renown${got}.${g.lastNext ? ` <i>${SAGAS[q.saga].name}</i> continues: <i>${g.lastNext.name}</i>.` : ""}`];
       if (g.endTriggered && !pre.ended) out.push(`<b class="final">${p === 0 ? "You have" : app.pname(p) + " has"} ${g.score(p)} renown: this is the final round.</b>`);
       return out;
     });
@@ -815,6 +845,9 @@ class App {
           const s = this.box(this.seat(p)), icon = this.q(`#opps .seat[data-p="${p}"] .qs`).children[qi];
           F.push({ make: () => { const d = this.questEl(q, null, "card-q"); d.classList.add("show"); return d; }, from: this.box(icon) || s, via: s && { cx: s.cx, cy: s.cy + 160, w: 184, h: 102 }, hold: 750, toFn: () => this.renownIc(p), ms: 400, land, quiet: true });
         }
+        // the cards it draws come off the deck
+        const had = new Set(e.pre.pl[p].hand.map(x => x.id));
+        e.snap.players[p].hand.filter(x => !had.has(x.id)).forEach((x, n) => arrive(x, false, deckBox(), (p === 0 ? 520 : 1300) + n * 140));
         // a saga: the next part arrives, shown for a moment on its way
         if (e.nextPart) {
           fx.quest = p;
@@ -1010,21 +1043,26 @@ class App {
       : q.sealed ? ` <span class="qbadge" data-tip="<b>A sealed commission</b><br>It pays more than an open quest, and what it needs is revealed when it's taken.">${ic("seal")}</span>` : "";
     d.innerHTML = `<div class="tname"><span class="seal" title="${TYPES[q.type]}">${ic(TYPEKEY[q.type])}</span>${q.name}${badge}</div>
       <div class="needs">${q.need.map((n, r) => (n ? `<span class="need${pl && pl.res[r] < n ? " short" : ""}">${tok(r)}${n}</span>` : "")).join("")}</div>
-      <div class="reward">${ic("renown")}${q.pts}</div>${fav ? `<div class="fav" title="Your favourite kind: +${this.g.o.favourBonus} renown">★</div>` : ""}`;
+      <div class="reward">${this.qcards(q)}${ic("renown")}${q.pts}</div>${fav ? `<div class="fav" title="Your favourite kind: +${this.g.o.favourBonus} renown">★</div>` : ""}`;
     return d;
+  }
+  // The cards a quest draws when it's completed, as a small card back with the number on it.
+  qcards(q) {
+    const n = this.g.questCards(q);
+    return n ? `<span class="qcards" data-tip="<b>Draws ${plural(n, "card")}</b><br>when you complete it. Bigger quests draw more.">${n}</span>` : "";
   }
 
   // A sealed commission as it lies at the Tavern: its reward shows, what it needs doesn't.
   sealedEl(q) {
     const d = document.createElement("div");
     d.className = "quest parchment strip sealed";
-    d.innerHTML = `<div class="tname"><span class="seal">${ic("seal")}</span>A sealed commission</div><div class="needs"><span class="hidden-needs">what it needs is revealed when it's taken</span></div><div class="reward">${ic("renown")}${q.pts}</div>`;
+    d.innerHTML = `<div class="tname"><span class="seal">${ic("seal")}</span>A sealed commission</div><div class="needs"><span class="hidden-needs">what it needs is revealed when it's taken</span></div><div class="reward">${this.qcards(q)}${ic("renown")}${q.pts}</div>`;
     return d;
   }
 
   askTavern() {
     const g = this.g, me = g.players[0], full = me.quests.length >= g.o.questLimit;
-    this.panel(`<h2>The Tavern</h2><p>${full ? `You hold ${g.o.questLimit} quests. To take another, you'll tear one up.` : `Choose a quest. You can hold ${g.o.questLimit}.`}</p><div class="qlist" id="tq"></div><div class="btns"><button class="btn dark" id="b-fresh" ${g.canRefreshQuests(0) && g.t.ap >= 2 ? "" : "disabled"}>Fresh quests · 1 AP</button><button class="btn dark" id="b-x">Cancel</button></div>`, "ask");
+    this.panel(`<h2>The Tavern</h2><p>${full ? `You hold ${g.o.questLimit} quests. To take another, you'll tear one up.` : `Choose a quest. You can hold ${g.o.questLimit}.`}</p><div class="qlist" id="tq"></div><div class="btns"><button class="btn dark" id="b-fresh" ${g.canRefreshQuests(0) && g.t.ap >= 2 ? "" : "disabled"}>Fresh quests ${stCost(1)}</button><button class="btn dark" id="b-x">Cancel</button></div>`, "ask");
     $("b-fresh").onclick = async () => { if (!this.allow("refresh")) return; this.closePanel(); await this.act(() => g.refreshQuests(0)); if (this.g.canWork(0)) this.askTavern(); };
     g.qrow.forEach((q, i) => { const d = this.questEl(q, me, "strip"); d.onclick = () => this.takeQuest(i); $("tq").appendChild(d); });
     if (g.sealedDeck.length) { const d = this.sealedEl(g.sealedDeck[0]); d.onclick = () => this.takeQuest("sealed"); $("tq").appendChild(d); }
@@ -1095,7 +1133,13 @@ class App {
         this.panel(`<h2>Hand in a quest</h2><p>You can complete one quest this turn.</p><div class="qlist" id="hq"></div><div class="btns"><button class="btn dark" id="b-no">Not now</button></div>`, "ask");
         for (const i of can) {
           const d = this.questEl(me.quests[i], me, "strip");
-          d.onclick = () => { this.closePanel(); g.handIn(0, i); res(); };
+          d.onclick = () => {
+            this.closePanel();
+            const had = new Set(me.hand.map(x => x.id));
+            g.handIn(0, i);
+            me.hand.forEach(x => { if (!had.has(x.id)) this.fresh.add(x.id); });
+            res();
+          };
           $("hq").appendChild(d);
         }
         $("b-no").onclick = () => { this.closePanel(); res(); };
@@ -1186,7 +1230,7 @@ class App {
         const k = card(a.a[1]).spell, arg = a.a[2];
         this.sel.add(a.a[1]);
         text = k === "blink" ? `cast <b>Blink</b> to jump to the <b>${PLACES[arg]}</b>.` : k === "scry" ? "cast <b>Scry</b> for two more cards."
-          : k === "recall" ? `cast <b>Recall</b> to take back the <b>${cardName(a.pile[arg])}</b>.` : k === "haggle" ? "cast <b>Haggle</b>, so every vendor charges 1 AP again."
+          : k === "recall" ? `cast <b>Recall</b> to take back the <b>${cardName(a.pile[arg])}</b>.` : k === "haggle" ? "cast <b>Haggle</b>, so every vendor charges 1 stamina again."
           : `cast <b>Renew</b>, so your <b>${g.charters.find(ch => ch.id === arg).def.name}</b> doesn't fade.`;
         targets = [hand(a.a[1]), "#btn-cast"];
         break;
@@ -1252,8 +1296,12 @@ class App {
     const N = $("notice"), e = g.event;
     N.classList.toggle("on", !!e);
     if (!e) return;
-    if (this.shownEvent !== e.key) {
+    if (this.shownEvent !== e.key || this.shownEventFs !== this.fs) {
       N.innerHTML = `<div class="nt-name">${ic("seal")}${e.name}</div><div class="nt-text">${e.text}</div>`;
+      // a long event shrinks its text a little to stay on one line
+      const T = N.querySelector(".nt-text");
+      if (T.scrollWidth > T.clientWidth) T.style.fontSize = (parseFloat(getComputedStyle(T).fontSize) * T.clientWidth / T.scrollWidth - 0.2).toFixed(1) + "px";
+      this.shownEventFs = this.fs;
       N.title = `This round: ${e.name}. ${e.text}`;
       if (this.shownEvent) { N.classList.remove("fresh"); void N.offsetWidth; N.classList.add("fresh"); Sfx.bell(); }
       this.shownEvent = e.key;
@@ -1292,7 +1340,7 @@ class App {
       let fan = "";
       for (let i = 0; i < shown; i++) {
         const t = i - (shown - 1) / 2;
-        fan += `<div class="card back" style="left:${(t * step).toFixed(1)}px;transform:rotate(${(-t * spread).toFixed(2)}deg)">${ic("back")}</div>`;
+        fan += `<div class="card back bv${(i * 3 + p) % 4}" style="left:${(t * step).toFixed(1)}px;transform:rotate(${(-t * spread).toFixed(2)}deg)"></div>`;
       }
       const qs = pl.quests.map((q, i) => `<i class="ic ic-${TYPEKEY[q.type]}${this.fx.quest === p && i === pl.quests.length - 1 ? " hidden-for-flight" : ""}"></i>`).join("");
       s.innerHTML = `<div class="fan">${fan}<div class="anchor"></div></div><div class="count">${n}</div>
@@ -1321,9 +1369,9 @@ class App {
       b.dataset.sp = sp;
       b.style.left = P[sp][0] + "px";
       b.style.top = P[sp][1] + "px";
-      if (sp === SQUARE) b.innerHTML = `<div class="pn">Square${go ? " · 1 AP" : ""}</div>`;
+      if (sp === SQUARE) b.innerHTML = `<div class="pn">Square${go ? ` ${stCost(1)}` : ""}</div>`;
       else {
-        const sub = aim ? (blink ? "Blink here" : "you are here") : go ? "Walk · 1 AP" : work ? (pr >= 0 ? `Work · ${this.g.workCost(0)} AP${y > 1 ? ` · +${y}` : ""}` : sp === TAVERN ? "Work · a quest" : `Work · trade${boon ? " 1 for 2" : ""}`)
+        const sub = aim ? (blink ? "Blink here" : "you are here") : go ? `Walk ${stCost(1)}` : work ? (pr >= 0 ? `Work ${stCost(this.g.workCost(0))}${y > 1 ? ` · +${y}` : ""}` : sp === TAVERN ? "Work · a quest" : `Work · trade${boon ? " 1 for 2" : ""}`)
           : pr >= 0 ? (y > 1 ? `makes ${y} ${RES[pr]} today` : `makes ${RES[pr]}`) : (sp === TAVERN ? "quests" : boon ? "trade 1 for 2 today" : "trade");
         b.innerHTML = `${pr >= 0 ? `<div class="medal res r${pr}">${ic(RESKEY[pr])}</div>` : `<div class="medal">${ic(PLACEKEY[sp])}</div>`}<div><div class="pn">${PLACES[sp]}</div><div class="pw">${sub}</div></div>`;
       }
@@ -1386,7 +1434,7 @@ class App {
       d.dataset.i = i;
       const ap = cs.length * g.o.meldAP + (hit ? g.o.shapeAP : 0);
       d.innerHTML = `<div class="tname">${def.name}</div><div class="yield" title="Pays its owner 1 ${RES[def.res]} each turn">${tok(def.res)}</div>
-        <div class="shape">${meld ? "" : `<span class="pre">prefers</span>`}<b>${SHAPE_SHORT[def.shape]}</b></div>${meld ? `<div class="gain">+${ap} AP${hit ? " ✓" : ""}</div>` : ""}`;
+        <div class="shape">${meld ? "" : `<span class="pre">prefers</span>`}<b>${SHAPE_SHORT[def.shape]}</b></div>${meld ? `<div class="gain">${stGain(ap)}${hit ? " ✓" : ""}</div>` : ""}`;
       d.title = meld ? `Found the ${def.name} with these cards` : `${def.name}: click for more`;
       d.onclick = () => this.clickOffer(i);
       O.appendChild(d);
@@ -1412,7 +1460,7 @@ class App {
       d.innerHTML = `<div class="bar"></div><div class="tname">${ch.def.name}</div><div class="yield">${tok(ch.def.res)}</div>
         ${fadeRing(left, g.o.life)}
         ${ART.has(CHARKEY[owner]) ? `<div class="owner arms" title="${ch.owner === 0 ? "Yours" : owner}">${arms(owner)}</div>` : `<div class="owner portrait" style="--pc:${PCOL[ch.owner]}" title="${ch.owner === 0 ? "Yours" : owner}">${face(owner)}</div>`}
-        <div class="meld"></div>${can ? `<div class="gain">+${ch.owner === 0 ? g.o.ownLayoffAP : g.o.layoffAP} AP</div>` : ""}`;
+        <div class="meld"></div>${can ? `<div class="gain">${stGain(ch.owner === 0 ? g.o.ownLayoffAP : g.o.layoffAP)}</div>` : ""}`;
       const M = d.querySelector(".meld");
       const sorted = ch.cards.slice().sort((a, b) => a.r - b.r || a.s - b.s);
       const step = sorted.length > 1 ? Math.min(22, (room - cw) / (sorted.length - 1)) : 0;
@@ -1439,7 +1487,7 @@ class App {
     $("qmore").textContent = g.qdeck.length ? `· ${g.qdeck.length} more` : "· none left";
     const mine = this.mine() && this.mode === "play";
     $("btn-request").classList.toggle("on", !!(mine && this.g.canRefreshQuests(0)));
-    $("btn-request").title = this.g.players[0].pos === TAVERN ? "Put these quests to the bottom of the deck and draw fresh ones (1 AP)" : "Stand at the Tavern to draw fresh quests (1 AP)";
+    $("btn-request").title = this.g.players[0].pos === TAVERN ? "Put these quests to the bottom of the deck and draw fresh ones (1 stamina)" : "Stand at the Tavern to draw fresh quests (1 stamina)";
     $("btn-reoffer").classList.toggle("on", !!(mine && this.g.canRefreshCharters(0)));
   }
 
@@ -1449,18 +1497,25 @@ class App {
     $("me-char").innerHTML = `<div class="portrait" style="--pc:${PCOL[0]}">${face(me.character.name)}</div>
       <div class="nm">${me.character.name}</div><div class="ti">${me.character.title}</div>
       <div class="fv">${ic(TYPEKEY[me.character.favour])} Favours ${TYPES[me.character.favour]} (+${g.o.favourBonus})</div>`;
-    const ap = g.turn === 0 && g.t ? g.t.ap : 0;
-    $("me-ap").innerHTML = `${ic("ap")}${ap}<small>AP</small>`;
-    $("me-ap").classList.toggle("off", !myTurn || this.mode === "draw");
-    $("me-ap").title = "Action points: 1 to walk a step, work a place or buy a card";
+    // your stamina as tokens: new ones pop in, spent ones fade away
+    const sta = g.turn === 0 && g.t ? g.t.ap : 0, was = this.shownSt == null ? sta : this.shownSt, MAXT = 18;
+    this.shownSt = sta;
+    let toks = "";
+    for (let i = 0; i < Math.min(sta, MAXT); i++) toks += stTok(i >= was ? "new" : "");
+    for (let i = sta; i < Math.min(was, MAXT); i++) toks += stTok("gone");
+    const S = $("me-ap");
+    S.classList.toggle("off", !myTurn || this.mode === "draw");
+    S.classList.toggle("many", Math.max(sta, was) > 12);
+    S.innerHTML = `<div class="st-row">${toks || stTok("empty")}${sta > MAXT ? `<b>+${sta - MAXT}</b>` : ""}</div><small>${sta ? `${sta} stamina` : "no stamina"}</small>`;
+    S.dataset.tip = "<b>Stamina</b><br>Spend it to walk (1 a step), and to work a place or buy a card: 1, then 2, then 3 at the same vendor. You get 2 each turn, and more for every card you play onto a Charter.";
 
     // the piles
     const drawing = mine && this.mode === "draw", buying = mine && this.mode === "play" && live.canBuy(0);
     const ds = $("deck").querySelector(".slot");
     ds.innerHTML = "";
     ds.className = "slot" + (g.deck.length ? "" : " empty");
-    if (g.deck.length) ds.appendChild(backEl());
-    $("deck").querySelector(".lbl").innerHTML = drawing ? "<b>Draw</b>" : buying ? `<b>Buy · ${live.buyPrice()} AP</b>` : `Deck · ${g.deck.length}`;
+    if (g.deck.length) ds.appendChild(backEl("", g.deck.length % 4));
+    $("deck").querySelector(".lbl").innerHTML = drawing ? "<b>Draw</b>" : buying ? `<b>Buy</b> ${stCost(live.buyPrice())}` : `Deck · ${g.deck.length}`;
     $("deck").classList.toggle("go", drawing || buying);
     const xs = $("discard").querySelector(".slot"), D = g.discard;
     xs.innerHTML = "";
@@ -1472,7 +1527,7 @@ class App {
       else { e.classList.add("top"); if (this.fx.discard) e.classList.add("hidden-for-flight"); }
       xs.appendChild(e);
     });
-    $("discard").querySelector(".lbl").innerHTML = drawing && D.length ? "<b>Take</b>" : buying && D.length ? `<b>Buy · ${live.buyPrice()} AP</b>` : "Discard";
+    $("discard").querySelector(".lbl").innerHTML = drawing && D.length ? "<b>Take</b>" : buying && D.length ? `<b>Buy</b> ${stCost(live.buyPrice())}` : "Discard";
     $("discard").classList.toggle("go", (drawing || buying) && D.length > 0);
 
     // the hand, fanned; cards keep their elements so they slide when the hand changes
@@ -1538,8 +1593,9 @@ class App {
     else if (cs.length === 1 && cs[0].spell) st = live.castable(0, cs[0]) ? `<b>${SPELLS[cs[0].spell].name}:</b> ${SPELLS[cs[0].spell].text} Press <b>Cast</b>.` : live.t.spellUsed ? "One spell a turn: keep this one for next turn, or discard it." : `<b>${SPELLS[cs[0].spell].name}</b> can't be cast just now.`;
     else if (cs.length === 1 && live.charters.some(ch => fits(cs[0], ch))) st = "Click a glowing Charter to <b>lay it off</b>.";
     else if (cs.length === 1) st = "<b>Discard</b> it to end your turn.";
+    else if (cs.length >= 3 && cs.every(c => !c.spell && c.r === cs[0].r)) st = "Not a set: <b>each card of a new set must be a different suit</b>.";
     else if (cs.length >= 2) st = "Not a meld yet.";
-    else st = `<b>${live.t.ap} AP</b> to spend${PRODUCES[me.pos] >= 0 && live.rise(me.pos) ? `. The ${PLACES[me.pos]} now charges <b>${live.workCost(0)} AP</b>; other vendors start at 1` : ""}. Discard a card to end your turn.`;
+    else st = `<b>${live.t.ap} stamina</b> to spend${PRODUCES[me.pos] >= 0 && live.rise(me.pos) ? `. The ${PLACES[me.pos]} now charges <b>${live.workCost(0)}</b>; other vendors start at 1` : ""}. Discard a card to end your turn.`;
     $("status").innerHTML = `<span>${st}</span>`;
   }
 }

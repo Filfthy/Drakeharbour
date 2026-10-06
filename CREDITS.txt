@@ -7,7 +7,7 @@ Icons from game-icons.net, licensed under CC BY 3.0
         sunbeams, laurels, wax-seal, hourglass, footprint, trade, scroll-unfurled,
         teleport, domino-mask, crystal-ball, cycle, linked-rings, fairy-wand
   Delapouite: two-coins, shop, church, bookshelf, shaking-hands, monk-face,
-        wizard-face, tower-flag, fleur-de-lys, price-tag
+        wizard-face, tower-flag, price-tag
   Faithtoken: card-draw, card-discard
   Quoting: card-pickup
 The icons were recoloured (background removed) for use in the game.
