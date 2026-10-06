@@ -578,7 +578,8 @@ const Ambience = {
   volume: (() => { try { const v = localStorage.getItem("rv_ambvol"); return v == null ? 0.5 : +v; } catch (e) { return 0.5; } })(),
   nodes: null,
   timers: {},
-  gain() { return 0.55 * this.volume * this.volume; },
+  // very low: at the default setting the water and voices sit far below every sound effect
+  gain() { return 0.012 * this.volume * this.volume; },
   setVolume(v) {
     this.volume = Math.max(0, Math.min(1, v));
     try { localStorage.setItem("rv_ambvol", String(this.volume)); } catch (e) { /* ignore */ }
@@ -628,10 +629,10 @@ const Ambience = {
         later(key, min, max, fn);
       }, (min + Math.random() * (max - min)) * 1000);
     };
-    later("gull", 9, 26, () => Sfx.gull(c, c.currentTime, 0.016 + Math.random() * 0.01, out, Math.random() * 1.6 - 0.8));
+    later("gull", 9, 26, () => Sfx.gull(c, c.currentTime, 0.03 + Math.random() * 0.015, out, Math.random() * 1.6 - 0.8));
     later("hammer", 14, 34, () => {
       const n = 3 + Math.floor(Math.random() * 3), base = 800 + Math.random() * 60;
-      for (let k = 0; k < n; k++) Sfx.partials(c, c.currentTime + k * 0.42, base, [[1, 0.011, 0.35], [2.09, 0.006, 0.2]], out, 0.35);
+      for (let k = 0; k < n; k++) Sfx.partials(c, c.currentTime + k * 0.42, base, [[1, 0.02, 0.35], [2.09, 0.011, 0.2]], out, 0.35);
     });
   },
   stop() {
