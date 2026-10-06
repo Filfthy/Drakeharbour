@@ -29,10 +29,10 @@ const MUSIC_TUNES = [
 // The lute's part for each kind of tune: [step, strings, loudness, strummed]. Strings are
 // b bass root, q bass fifth, r root, t third, f fifth, R the root an octave up.
 const MUSIC_LUTE = {
-  jig: [[0, "b", 0.5], [0, "rtf", 0.24, 1], [3, "q", 0.38], [3, "rtf", 0.15, 1]],
-  jig2: [[0, "b", 0.5], [0, "rtf", 0.22, 1], [3, "q", 0.38], [4, "rt", 0.12, 1]],
-  dance3: [[0, "b", 0.5], [0, "rtfR", 0.24, 1], [2, "tf", 0.13, 1], [4, "tf", 0.13, 1]],
-  ballad: [[0, "b", 0.42], [1, "q", 0.26], [2, "r", 0.26], [3, "t", 0.26], [4, "f", 0.26], [5, "t", 0.24], [6, "r", 0.24], [7, "q", 0.26]]
+  jig: [[0, "b", 0.2], [0, "rtf", 0.22, 1], [3, "q", 0.15], [3, "rtf", 0.14, 1]],
+  jig2: [[0, "b", 0.2], [0, "rtf", 0.2, 1], [3, "q", 0.15], [4, "rt", 0.11, 1]],
+  dance3: [[0, "b", 0.2], [0, "rtfR", 0.22, 1], [2, "tf", 0.12, 1], [4, "tf", 0.12, 1]],
+  ballad: [[0, "b", 0.22], [1, "q", 0.16], [2, "r", 0.24], [3, "t", 0.24], [4, "f", 0.24], [5, "t", 0.22], [6, "r", 0.22], [7, "q", 0.15]]
 };
 // The drum's part: the first time through, then the second (with the tambourine).
 const MUSIC_DRUM = {
@@ -134,11 +134,13 @@ class MusicBand {
     if (this.ks.has(m)) return this.ks.get(m);
     const sr = this.ctx.sampleRate, len = Math.floor(sr * 2.4), y = new Float32Array(len);
     const D = sr / musicHz(m) - 0.5, N = Math.floor(D), fr = D - N;
+    // low strings get a softer pluck and die away sooner, so they hum rather than twang
+    const soft = m < 48 ? 0.2 : m < 60 ? 0.38 : 0.55, keep = m < 48 ? 0.9955 : 0.9978;
     let lp = 0;
-    for (let i = 0; i < N + 2; i++) { lp += 0.55 * ((Math.random() * 2 - 1) - lp); y[i] = lp; }
+    for (let i = 0; i < N + 2; i++) { lp += soft * ((Math.random() * 2 - 1) - lp); y[i] = lp; }
     for (let i = N + 2; i < len; i++) {
       const a = y[i - N] * (1 - fr) + y[i - N - 1] * fr, b = y[i - N - 1] * (1 - fr) + y[i - N - 2] * fr;
-      y[i] = 0.9978 * 0.5 * (a + b);
+      y[i] = keep * 0.5 * (a + b);
     }
     let pk = 1e-9;
     for (let i = 0; i < len; i++) pk = Math.max(pk, Math.abs(y[i]));
@@ -155,7 +157,7 @@ class MusicBand {
     src.buffer = this.string(m);
     g.gain.setValueAtTime(v, t);
     g.gain.setTargetAtTime(0, t + ring, 0.09);
-    this.chain(src, this.filter("peaking", 230, 1, 4), this.filter("lowpass", 2600, 0.7), g, this.pan.lute);
+    this.chain(src, this.filter("peaking", 230, 1, 1.5), this.filter("lowpass", m < 48 ? 900 : 2400, 0.7), g, this.pan.lute);
     src.start(t);
     src.stop(t + Math.min(2.4, ring + 0.6));
   }
@@ -268,21 +270,23 @@ class MusicBand {
 }
 
 // The player: shuffles the tunes and keeps a little ahead of the clock.
-// "sound" mutes everything; "level" is the music: 0 off, 1 quiet, 2 normal.
+// "sound" mutes everything; the music has its own switch and volume (0 to 1, a slider).
 const Music = {
-  VOL: [0, 0.22, 0.45],
+  MAXGAIN: 0.5,
   sound: true,
-  level: 2,
-  lastLevel: 2,
+  on: true,
+  volume: 0.5,
   ctx: null,
   band: null,
   timer: 0,
+  // the slider is shaped so that its lower half is properly quiet
+  gain() { return this.MAXGAIN * Math.pow(this.volume, 1.75); },
   init() {
     try {
-      const s = localStorage.getItem("rv_sound"), v = localStorage.getItem("rv_music");
+      const s = localStorage.getItem("rv_sound"), on = localStorage.getItem("rv_musicon"), v = localStorage.getItem("rv_musicvol"), old = localStorage.getItem("rv_music");
       if (s != null) this.sound = s === "1";
-      if (v != null) this.level = +v;
-      if (this.level > 0) this.lastLevel = this.level;
+      if (v != null) { this.volume = +v; this.on = on !== "0"; }
+      else if (old != null) { this.on = old !== "0"; this.volume = old === "1" ? 0.35 : 0.6; }   // the old Off / Quiet / On choice
     } catch (e) { /* ignore */ }
     // browsers only let sound start from a click, so the first one wakes it
     document.addEventListener("pointerdown", () => this.ensure() && this.refresh());
@@ -298,20 +302,26 @@ const Music = {
     if (this.ctx.state === "suspended" && !document.hidden) this.ctx.resume();
     return this.ctx;
   },
-  save() { try { localStorage.setItem("rv_sound", this.sound ? "1" : "0"); localStorage.setItem("rv_music", String(this.level)); } catch (e) { /* ignore */ } },
+  save() {
+    try {
+      localStorage.setItem("rv_sound", this.sound ? "1" : "0");
+      localStorage.setItem("rv_musicon", this.on ? "1" : "0");
+      localStorage.setItem("rv_musicvol", String(this.volume));
+    } catch (e) { /* ignore */ }
+  },
+  playing() { return this.sound && this.on && this.volume > 0; },
   setSound(on) { this.sound = on; this.save(); this.ensure(); this.refresh(); },
-  setLevel(l) { this.level = l; if (l > 0) this.lastLevel = l; this.save(); this.ensure(); this.refresh(); },
-  toggleMusic() { this.setLevel(this.level > 0 ? 0 : this.lastLevel); },
+  setVolume(v) { this.volume = Math.max(0, Math.min(1, v)); if (this.volume > 0) this.on = true; this.save(); this.ensure(); this.refresh(); },
+  toggleMusic() { this.on = !(this.on && this.volume > 0); if (this.on && !this.volume) this.volume = 0.5; this.save(); this.ensure(); this.refresh(); },
   refresh() {
-    const want = this.sound && this.level > 0;
-    if (!want) return this.stop();
+    if (!this.playing()) return this.stop();
     if (!this.ctx) return;
-    if (this.band) this.band.out.gain.setTargetAtTime(this.VOL[this.level], this.ctx.currentTime, 0.2);
+    if (this.band) this.band.out.gain.setTargetAtTime(this.gain(), this.ctx.currentTime, 0.15);
     else this.start();
   },
   start() {
     if (this.band || !this.ensure()) return;
-    this.band = new MusicBand(this.ctx, this.ctx.destination, this.VOL[this.level]);
+    this.band = new MusicBand(this.ctx, this.ctx.destination, this.gain());
     this.order = MUSIC_TUNES.map((_, i) => i).sort(() => Math.random() - 0.5);
     this.oi = 0;
     this.next(this.ctx.currentTime + 0.4);
@@ -343,11 +353,18 @@ Music.init();
 // Sound effects for the table: cards sliding and landing, coins, steps, chimes.
 const Sfx = {
   last: {},
-  ready() { return Music.sound && Music.ctx && Music.ctx.state === "running" ? Music.ctx : null; },
+  volume: (() => { try { const v = localStorage.getItem("rv_sfxvol"); return v == null ? 0.85 : +v; } catch (e) { return 0.85; } })(),
+  setVolume(v) {
+    this.volume = Math.max(0, Math.min(1, v));
+    try { localStorage.setItem("rv_sfxvol", String(this.volume)); } catch (e) { /* ignore */ }
+    if (this.bus) this.bus.gain.value = this.busGain();
+  },
+  busGain() { return 1.25 * this.volume * this.volume; },
+  ready() { return Music.sound && this.volume > 0 && Music.ctx && Music.ctx.state === "running" ? Music.ctx : null; },
   // at most one of each sound every few hundredths of a second, so a handful of cards is one sound
   gate(k, ms) { const n = performance.now(); if (n - (this.last[k] || 0) < ms) return false; this.last[k] = n; return true; },
   out(c) {
-    if (!this.bus || this.bus.context !== c) { this.bus = c.createGain(); this.bus.gain.value = 0.9; this.bus.connect(c.destination); }
+    if (!this.bus || this.bus.context !== c) { this.bus = c.createGain(); this.bus.gain.value = this.busGain(); this.bus.connect(c.destination); }
     return this.bus;
   },
   noise(c) {
@@ -407,6 +424,9 @@ const Sfx = {
     for (let i = 0; i < 9; i++) this.burst(c, c.currentTime + i * 0.028, 0.03, "bandpass", 3000, 3000, 1, 0.07);
   },
   chime() { this.tones([[1047, 0, 0.5], [1319, 0.07, 0.5], [1568, 0.14, 0.6]], "sine", 0.05); },
+  spell() { this.tones([[1319, 0, 0.35], [1760, 0.05, 0.4], [2349, 0.1, 0.45], [2637, 0.16, 0.7], [3520, 0.22, 0.6]], "sine", 0.035); },
   fanfare() { this.tones([[523, 0, 0.25], [659, 0.09, 0.25], [784, 0.18, 0.3], [1047, 0.28, 0.7], [784, 0.28, 0.7]], "triangle", 0.06); },
-  turn() { this.tones([[784, 0, 0.35], [1175, 0.12, 0.5]], "sine", 0.045); }
+  turn() { this.tones([[784, 0, 0.35], [1175, 0.12, 0.5]], "sine", 0.045); },
+  // a town bell: a new town event
+  bell() { this.tones([[587, 0, 1.4], [880, 0, 1.1], [1175, 0.01, 0.8], [440, 0.42, 1.6], [659, 0.42, 1.2]], "sine", 0.035); }
 };

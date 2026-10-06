@@ -36,17 +36,7 @@ button { font-family: var(--display); }
 
 /* icons: game-icons.net shapes used as masks, so they take the text colour */
 .ic { display: inline-block; width: 1em; height: 1em; background: currentColor; -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; flex: none; }
-.ic-gold { --m: url("img/icons/gold.svg"); } .ic-steel { --m: url("img/icons/steel.svg"); } .ic-faith { --m: url("img/icons/faith.svg"); } .ic-lore { --m: url("img/icons/lore.svg"); }
-.ic-market { --m: url("img/icons/market.svg"); } .ic-forge { --m: url("img/icons/forge.svg"); } .ic-tavern { --m: url("img/icons/tavern.svg"); }
-.ic-temple { --m: url("img/icons/temple.svg"); } .ic-library { --m: url("img/icons/library.svg"); } .ic-harbour { --m: url("img/icons/harbour.svg"); }
-.ic-adventure { --m: url("img/icons/adventure.svg"); } .ic-diplomacy { --m: url("img/icons/diplomacy.svg"); } .ic-devotion { --m: url("img/icons/devotion.svg"); }
-.ic-scholarship { --m: url("img/icons/scholarship.svg"); } .ic-exploration { --m: url("img/icons/exploration.svg"); }
-.ic-aldric { --m: url("img/icons/aldric.svg"); } .ic-velia { --m: url("img/icons/velia.svg"); } .ic-anselm { --m: url("img/icons/anselm.svg"); }
-.ic-orrin { --m: url("img/icons/orrin.svg"); } .ic-kestra { --m: url("img/icons/kestra.svg"); }
-.ic-ap { --m: url("img/icons/ap.svg"); } .ic-renown { --m: url("img/icons/renown.svg"); } .ic-writ { --m: url("img/icons/writ.svg"); }
-.ic-fading { --m: url("img/icons/fading.svg"); } .ic-move { --m: url("img/icons/move.svg"); } .ic-buy { --m: url("img/icons/buy.svg"); }
-.ic-discard { --m: url("img/icons/discard.svg"); } .ic-charter { --m: url("img/icons/charter.svg"); } .ic-back { --m: url("img/icons/back.svg"); }
-.ic-trade { --m: url("img/icons/trade.svg"); } .ic-quest { --m: url("img/icons/quest.svg"); }
+/* each icon's shape (.ic-gold and so on) is in icons.css, made by tools/make-icons.py */
 
 /* resource tokens */
 .tok { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; flex: none; box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.55); }
@@ -55,9 +45,9 @@ button { font-family: var(--display); }
    Gold (the Market) deep yellow, Steel (the Forge) steel blue, Faith (the Temple) white with
    a flame, Lore (the Library) a green-bound book. (Not red: the quest seals and shortfall numbers are red.) */
 .r0 { --tokbg: radial-gradient(circle at 35% 30%, #ffe680, #f0b400 55%, #9a6400); --tokfg: #4a2c00; }
-.r1 { --tokbg: radial-gradient(circle at 35% 30%, #b3c8de, #4f6b8a 55%, #22324a); --tokfg: #f4f8fc; }
+.r1 { --tokbg: radial-gradient(circle at 35% 30%, #dcefff, #4b90e6 55%, #1d4f99); --tokfg: #0d2142; }
 .r2 { --tokbg: radial-gradient(circle at 35% 30%, #ffffff, #f6f3ec 55%, #cfc8b6); --tokfg: #d4520f; }
-.r3 { --tokbg: radial-gradient(circle at 35% 30%, #9ad692, #2f7d41 55%, #123f1f); --tokfg: #f8f0d8; }
+.r3 { --tokbg: radial-gradient(circle at 35% 30%, #8fd39a, #1f6b34 55%, #0b3317); --tokfg: #f8f0d8; }
 .tok { background: var(--tokbg); color: var(--tokfg); box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.3), 0 0 0 1.5px rgba(30, 18, 8, 0.85), 0 1px 3px rgba(0, 0, 0, 0.5); }
 .need { display: inline-flex; align-items: center; gap: 2px; font-family: var(--display); font-weight: 800; font-size: calc(16px * var(--fs)); }
 .need .tok { width: 23px; height: 23px; }
@@ -75,14 +65,60 @@ button { font-family: var(--display); }
 .btn .ic { width: 16px; height: 16px; vertical-align: -3px; margin-right: 4px; }
 
 /* ---------------------------------------------------------------- top: brand, opponents, the corner buttons */
-#brand { position: absolute; left: 12px; top: 10px; padding: 6px 14px 7px; border-radius: 10px; background: rgba(28, 17, 9, 0.78); box-shadow: 0 0 0 1px rgba(227, 181, 75, 0.45), 0 4px 12px rgba(0, 0, 0, 0.5); font-family: var(--display); font-weight: 900; font-size: 28px; letter-spacing: 0.22em; color: var(--gold); text-shadow: 0 2px 4px #000, 0 0 18px rgba(227, 181, 75, 0.35); }
-#brand small { display: block; font-size: 11px; letter-spacing: 0.3em; color: var(--cream-dim); font-weight: 400; }
+/* the title logo in the corner during a game */
+#brand { position: absolute; left: 10px; top: 6px; width: 250px; pointer-events: none; }
+#brand img { display: block; width: 100%; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6)); }
+/* shown once someone reaches the target: the round in progress is the last */
+#final { position: absolute; left: 12px; top: 84px; padding: 4px 14px; border-radius: 6px; display: none; z-index: 5;
+  font-family: var(--display); font-weight: 800; font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; color: #fff1c8;
+  background: linear-gradient(180deg, #b0281c, #7a140c); box-shadow: 0 0 0 1.5px var(--gold), 0 4px 12px rgba(0, 0, 0, 0.5); animation: finalpulse 1.6s ease-in-out infinite; }
+#final.on { display: block; }
+@keyframes finalpulse { 50% { box-shadow: 0 0 0 1.5px var(--gold), 0 0 18px rgba(240, 90, 60, 0.8); } }
+b.final { color: #ff9a7a; }
+#log b.final, .loglist b.final { color: #a3260f; }
 #menu { position: absolute; right: 16px; top: 12px; display: flex; flex-direction: column; gap: 7px; align-items: flex-end; z-index: 40; }
 #menu .row { display: flex; gap: 6px; }
 #menu .icon { min-width: 40px; height: calc(30px * var(--fs)); padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: calc(15px * var(--fs)); }
 #menu .icon svg { display: block; width: 1.25em; height: 1.25em; }
 #menu .icon.muted { color: rgba(243, 231, 204, 0.5); }
-#btn-hint { color: #10222e; border-color: #2e6f93; background: linear-gradient(180deg, #d8f2ff, #8fd6ff 55%, #58a9d6); }
+/* the volume panel under the music button, and the same sliders on the start screen */
+#mixer { position: absolute; right: 16px; top: 88px; width: 300px; padding: 10px 14px 8px; z-index: 45; }
+#mixer.hidden { display: none; }
+#mixer .mx-note { font-size: calc(12.5px * min(var(--fs), 1.12)); font-style: italic; color: var(--ink-soft); margin-top: 2px; }
+.mx-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
+.mx-row > span { width: 70px; font-family: var(--display); font-weight: 700; font-size: calc(14px * min(var(--fs), 1.12)); color: var(--ink); }
+.mx-row > b { width: 42px; text-align: right; font-family: var(--display); font-size: calc(13px * min(var(--fs), 1.12)); color: var(--ink-soft); }
+#panel .vols .mx-row > span { width: 130px; }
+input.vol { flex: 1; height: 22px; margin: 0; accent-color: #8a5a12; cursor: pointer; background: transparent; -webkit-appearance: none; appearance: none; }
+input.vol::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #b98a3a, #6e4d12); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4); }
+input.vol::-moz-range-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #b98a3a, #6e4d12); }
+input.vol::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6px; border-radius: 50%; border: 1px solid #5a3c1c;
+  background: radial-gradient(circle at 38% 32%, #fff3c4, #e3b54b 60%, #9c7019); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); }
+input.vol::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; border: 1px solid #5a3c1c; background: radial-gradient(circle at 38% 32%, #fff3c4, #e3b54b 60%, #9c7019); }
+/* parchment buttons for the corner controls */
+.btn.parch { color: var(--ink); text-shadow: none; border: 1px solid #5a3c1c; background: #efe0b9 url("img/parchment.webp");
+  box-shadow: inset 0 0 8px rgba(122, 82, 32, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 2px 5px rgba(0, 0, 0, 0.55); }
+.btn.parch:hover:not(:disabled) { filter: brightness(1.06); }
+.btn.parch:disabled { filter: grayscale(0.4); opacity: 0.55; }
+#menu .icon.parch.muted { color: rgba(43, 26, 14, 0.4); }
+#btn-hint.parch { color: #17496e; font-weight: 800; }
+/* the little "fresh" buttons on the offers strip and the Tavern */
+.mini { display: block; margin: 5px auto 0; padding: 2px 7px; border-radius: 5px; border: 1px solid #5a3c1c; cursor: default; opacity: 0.45;
+  font-family: var(--display); font-weight: 700; font-size: 10.5px; letter-spacing: 0.04em; color: var(--ink); text-transform: none; text-shadow: none;
+  background: #efe0b9 url("img/parchment.webp"); box-shadow: inset 0 0 6px rgba(122, 82, 32, 0.4); white-space: nowrap; }
+.mini.on { cursor: pointer; opacity: 1; box-shadow: inset 0 0 6px rgba(122, 82, 32, 0.4), 0 0 0 2px var(--gold), 0 0 10px rgba(227, 181, 75, 0.6); }
+.mini.on:hover { filter: brightness(1.08); }
+#tavern .zone-title .mini { display: inline-block; margin: 0 0 0 auto; order: 3; }
+#tavern .zone-title::after { order: 2; }
+#qmore { order: 1; }
+/* a row that has just been turned over */
+#qrow.turnover .quest, #offer.turnover .offer { animation: turnover 0.45s ease-out; }
+@keyframes turnover { 0% { transform: rotateY(90deg); opacity: 0.2; } 100% { transform: rotateY(0); opacity: 1; } }
+/* the figure whose turn it is glows */
+#town .pawn.active svg { filter: drop-shadow(0 0 3px #fff3c4) drop-shadow(0 0 7px rgba(255, 214, 110, 0.95)); }
+#town .pawn.token.active img { filter: drop-shadow(0 0 2px #fff3c4) drop-shadow(0 0 8px rgba(255, 214, 110, 0.95)) drop-shadow(0 3px 3px rgba(0, 0, 0, 0.5)); animation: activefig 1.6s ease-in-out infinite; }
+#town .pawn.token.active .ring { box-shadow: 0 0 0 2px #fff3c4, 0 0 12px var(--pc), 0 0 18px rgba(255, 214, 110, 0.9); }
+@keyframes activefig { 50% { filter: drop-shadow(0 0 1px #fff3c4) drop-shadow(0 0 3px rgba(255, 214, 110, 0.6)) drop-shadow(0 3px 3px rgba(0, 0, 0, 0.5)); } }
 #opps { position: absolute; left: 230px; top: 4px; width: 1140px; height: 180px; display: flex; gap: 44px; justify-content: center; }
 .seat { position: relative; width: 300px; height: 178px; cursor: zoom-in; }
 .seat .anchor { position: absolute; left: -30px; top: 8px; width: 60px; height: 84px; }
@@ -113,13 +149,23 @@ button { font-family: var(--display); }
 #map::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 62% 58% at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(12, 7, 3, 0.5) 100%); }
 #town { position: absolute; inset: 0; pointer-events: none; }
 #town svg { position: absolute; inset: 0; }
-#town .place, #town .spot { pointer-events: auto; }
+#town .place { pointer-events: auto; }
+/* the districts: clear until you can walk there (gold), work there (green) or Blink there (violet) */
+#town .pie .sector { fill: rgba(0, 0, 0, 0); pointer-events: all; }
+#town .pie .sector.go, #town .pie .sector.work, #town .pie .sector.blink { cursor: pointer; }
+#town .pie .sector.go { fill: url(#pg-go); } #town .pie .sector.go:hover { fill: url(#pg-go-hi); }
+#town .pie .sector.work { fill: url(#pg-work); } #town .pie .sector.work:hover { fill: url(#pg-work-hi); }
+#town .pie .sector.blink { fill: url(#pg-blink); } #town .pie .sector.blink:hover { fill: url(#pg-blink-hi); }
+#town .pie .borders { pointer-events: none; }
+#town .pie .b-dark { fill: none; stroke: rgba(24, 14, 6, 0.55); stroke-width: 5.5; stroke-linecap: round; }
+#town .pie .b-light { fill: none; stroke: rgba(250, 236, 196, 0.92); stroke-width: 2.2; stroke-linecap: round; }
+/* the Square has no banner, just its name in the middle of the circle */
+.place.square { padding: 1px 10px 2px; gap: 0; border-radius: 999px; border: 1px solid rgba(243, 226, 176, 0.55); background: rgba(24, 14, 6, 0.62); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5); }
+.place.square .pn { font-family: var(--display); font-weight: 700; font-size: calc(11.5px * min(var(--fs), 1.15)); letter-spacing: 0.12em; text-transform: uppercase; color: #f6e7bf; }
+.place.square.go { border-color: var(--gold); box-shadow: var(--glow-gold); }
+#town .place.square .pawn.token { bottom: calc(100% + 1px); }
+.place.square.go .pn { color: var(--gold-hi); }
 /* a building you can click: lit up when you can walk there (gold) or work it (green) */
-.spot { position: absolute; border-radius: 50%; transform: translate(-50%, -50%); }
-.spot.go, .spot.work { cursor: pointer; }
-.spot.go { background: radial-gradient(closest-side, rgba(255, 214, 110, 0.42), rgba(255, 214, 110, 0.16) 70%, rgba(255, 214, 110, 0)); }
-.spot.work { background: radial-gradient(closest-side, rgba(120, 230, 120, 0.42), rgba(120, 230, 120, 0.16) 70%, rgba(120, 230, 120, 0)); }
-.spot.go:hover, .spot.work:hover { filter: brightness(1.35); }
 /* the name banner on each building */
 .place { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 6px; padding: 4px 12px 4px 5px; white-space: nowrap;
   background: #f1e3bf url("img/parchment.webp"); border-radius: 8px; border: 1px solid #5a3c1c;
@@ -151,9 +197,32 @@ button { font-family: var(--display); }
   background: var(--pc); box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.6), 0 0 8px var(--pc); }
 .place .pawn.token { bottom: calc(100% - 4px); }
 
-#chronicle { position: absolute; left: 1192px; top: 532px; width: 396px; height: 66px; padding: 5px 12px; cursor: zoom-in; }
+/* the round's town event, posted at the left of the town */
+#notice { position: absolute; left: 226px; top: 300px; transform: translate(-50%, -50%); width: 262px; padding: 5px 12px 6px; text-align: center; display: none;
+  border: 1px solid #5a3c1c; border-radius: 8px; box-shadow: inset 0 0 10px rgba(122, 82, 32, 0.45), 0 0 0 2px rgba(227, 181, 75, 0.85), 0 4px 10px rgba(0, 0, 0, 0.55); }
+#notice.on { display: block; }
+#notice .nt-name { font-family: var(--display); font-weight: 800; font-size: calc(14px * min(var(--fs), 1.12)); white-space: nowrap; color: #6e1a10; display: flex; align-items: center; justify-content: center; gap: 5px; }
+#notice .nt-name .ic { width: 15px; height: 15px; color: #a3260f; }
+#notice .nt-text { font-size: calc(13.5px * min(var(--fs), 1.12)); line-height: 1.2; color: var(--ink); white-space: nowrap; }
+#notice.fresh { animation: noticein 0.9s ease-out; }
+@keyframes noticein { 0% { transform: translate(-50%, -50%) scale(0.4) rotate(-6deg); opacity: 0; } 60% { transform: translate(-50%, -50%) scale(1.08) rotate(1deg); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); } }
+/* aiming a Blink: every other place glows violet; aiming a Renew: your Charters do */
+.place.blink { cursor: pointer; box-shadow: inset 0 0 10px rgba(122, 82, 32, 0.45), 0 0 0 3px #a98bff, 0 0 18px rgba(169, 139, 255, 0.85); animation: blinkglow 1.3s ease-in-out infinite; }
+.place.blink .pw { font-style: normal; font-weight: 700; color: #4b2a9a; }
+.place.here { opacity: 0.75; }
+@keyframes blinkglow { 50% { box-shadow: inset 0 0 10px rgba(122, 82, 32, 0.45), 0 0 0 3px rgba(169, 139, 255, 0.5), 0 0 8px rgba(169, 139, 255, 0.4); } }
+.charter.renew { cursor: pointer; box-shadow: inset 0 0 34px rgba(122, 82, 32, 0.4), 0 0 0 3px #a98bff, 0 0 18px rgba(169, 139, 255, 0.85); }
+/* the place that today's event favours */
+.place.boon { box-shadow: inset 0 0 10px rgba(122, 82, 32, 0.45), 0 0 0 2px #e3b54b, 0 0 14px rgba(255, 214, 110, 0.75); }
+.place.boon .pw { color: #7a4e00; font-style: normal; font-weight: 700; }
+.place.boon.go { box-shadow: inset 0 0 10px rgba(122, 82, 32, 0.45), var(--glow-gold); }
+.place.boon.work { box-shadow: inset 0 0 10px rgba(122, 82, 32, 0.45), var(--glow-green); }
+#panel .acc-b ul.events { margin-top: 0; }
+#stage.idle #notice { visibility: hidden; }
+
+#chronicle { position: absolute; left: 1192px; top: 538px; width: 396px; height: 60px; padding: 5px 12px; cursor: zoom-in; }
 #chronicle .panel-title { margin-bottom: 1px; font-size: 11px; }
-#log { height: 44px; overflow: hidden; font-size: calc(14px * var(--fs)); line-height: 1.3; color: var(--ink); display: flex; flex-direction: column; justify-content: flex-end;
+#log { height: 38px; overflow: hidden; font-size: calc(14px * var(--fs)); line-height: 1.3; color: var(--ink); display: flex; flex-direction: column; justify-content: flex-end;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12px); mask-image: linear-gradient(to bottom, transparent 0, #000 12px); }
 #log .faint, .loglist .faint { color: var(--ink-faint); font-style: italic; }
 
@@ -186,9 +255,19 @@ button { font-family: var(--display); }
 .charter .owner.arms img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)); }
 #panel .lens-arms { width: 44px; height: 57px; flex: none; }
 #panel .lens-arms img { width: 100%; height: 100%; object-fit: contain; }
-.charter .fade { position: absolute; right: 8px; top: 34px; display: flex; align-items: center; gap: 1px; font-family: var(--display); font-weight: 900; font-size: calc(13px * var(--fs)); color: var(--ink-soft); }
-.charter .fade .ic { width: 14px; height: 14px; }
-.charter .fade.warn { color: #a3260f; }
+.charter .fade { position: absolute; right: 7px; top: 32px; width: 23px; height: 23px; }
+/* the fading ring: a slice for each round left */
+.fade .ring { display: block; width: 100%; height: 100%; overflow: visible; }
+.fade .ring .rim { fill: rgba(43, 26, 14, 0.14); stroke: rgba(43, 26, 14, 0.6); stroke-width: 1; }
+.fade .ring .on, .fade .ring .off { stroke: #f3e6c4; stroke-width: 1.5; stroke-linejoin: round; }
+.fade .ring .off { fill: none; }
+.fade.full .ring .on { fill: #4f8a2c; }
+.fade.mid .ring .on { fill: #d08a1c; }
+.fade.low .ring .on { fill: #b8321a; }
+.fade.out .ring .rim { fill: rgba(184, 50, 26, 0.16); stroke: #b8321a; stroke-width: 1.8; }
+.fade.out .ring { animation: fadewarn 1.2s ease-in-out infinite; }
+@keyframes fadewarn { 50% { transform: scale(1.18); } }
+#panel .facts > .fade { display: block; width: 24px; height: 24px; }
 .charter .meld { position: absolute; left: 14px; bottom: 6px; display: flex; }
 #founded .none { grid-column: 1 / -1; color: rgba(243, 231, 204, 0.8); font-style: italic; font-size: calc(15px * var(--fs)); padding: 6px 2px; }
 /* a crowded table: shorter rows and smaller cards */
@@ -202,6 +281,14 @@ button { font-family: var(--display); }
 #founded.dense .card.sm .emb { width: 18px; height: 18px; }
 #founded.dense .card.sm .idx { left: 0; top: 2px; width: 16px; }
 #founded.dense .card.sm .rk { font-size: 11px; }
+/* a full table (more than ten): three narrow columns */
+#founded.densest { grid-template-columns: repeat(3, 130px); gap: 6px 9px; }
+#founded.densest .charter { width: 130px; height: 84px; padding: 5px 8px 5px 13px; }
+#founded.densest .charter .tname { font-size: calc(13px * min(var(--fs), 1.1)); padding-right: 22px; }
+#founded.densest .charter .yield { right: 5px; top: 5px; }
+#founded.densest .charter .yield .tok { width: 20px; height: 20px; }
+#founded.densest .charter .fade { right: 6px; bottom: 6px; }
+#founded.densest .charter .meld { left: 11px; }
 
 /* ---------------------------------------------------------------- quests */
 #tavern { position: absolute; left: 1192px; top: 184px; width: 396px; padding: 9px 8px; }
@@ -224,6 +311,20 @@ button { font-family: var(--display); }
 .quest.strip .tname { white-space: nowrap; text-overflow: ellipsis; max-height: none; padding-right: 64px; }
 .quest.strip .needs { margin-top: 3px; }
 .quest.strip .reward { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: calc(22px * var(--fs)); }
+.qbadge { display: inline-flex; align-items: center; gap: 2px; margin-left: 5px; padding: 0 5px; border-radius: 5px; background: #2a2156; color: var(--gold-hi);
+  font-family: var(--display); font-weight: 800; font-size: 11px; line-height: 17px; vertical-align: 2px; letter-spacing: 0.04em; }
+.qbadge .ic { width: 13px; height: 13px; }
+/* the sealed commission at the Tavern: a folded letter under a wax seal */
+.quest.sealed { background: #d9c79c url("img/parchment.webp"); background-blend-mode: multiply; }
+.quest.sealed .seal { background: radial-gradient(circle at 38% 32%, #c43a2b, #8c1a12 60%, #5a0c08); }
+.quest.sealed .hidden-needs { font-style: italic; font-size: calc(13px * var(--fs)); color: var(--ink-soft); }
+#qsealed { margin-top: 6px; display: flex; justify-content: center; }
+#qsealed .quest.strip { height: 44px; padding: 4px 12px; }
+#qsealed .quest.strip .needs { margin-top: 0; }
+#tavern .quest.strip { height: 56px; padding: 4px 12px; }
+#tavern .quest.strip .needs { margin-top: 1px; }
+#tavern .quest.strip .need { line-height: 21px; }
+#tavern .quest.strip .need .tok { width: 21px; height: 21px; }
 .quest.ready { box-shadow: inset 0 0 34px rgba(122, 82, 32, 0.4), var(--glow-green); }
 #qmore { font-family: var(--serif); font-weight: 400; font-size: calc(13px * var(--fs)); letter-spacing: 0; text-transform: none; font-style: italic; color: var(--cream-dim); }
 
@@ -243,14 +344,20 @@ button { font-family: var(--display); }
 .card.s1 { --sc: var(--moon); --emb: url("img/emb-moon.webp"); --pip: url("img/pip-moon.webp"); }
 .card.s2 { --sc: var(--raven); --emb: url("img/emb-raven.webp"); --pip: url("img/pip-raven.webp"); }
 .card.s3 { --sc: var(--tower); --emb: url("img/emb-tower.webp"); --pip: url("img/pip-tower.webp"); }
-.card.writ { --sc: #7c1410; }
-.card.writ .seal { position: absolute; left: 50%; top: 44%; width: 56px; height: 56px; transform: translate(-50%, -50%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #f3caa0;
-  background: radial-gradient(circle at 38% 32%, #c43a2b, #8c1a12 60%, #5a0c08); box-shadow: 0 2px 3px rgba(0, 0, 0, 0.45); }
-.card.writ .seal .ic { width: 32px; height: 32px; }
-.card.writ .wl { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-weight: 800; font-size: 13px; letter-spacing: 0.12em; }
 .card.back { background: #5a1712; color: var(--gold); box-shadow: inset 0 0 0 3px #3a0d09, inset 0 0 0 5px var(--gold-d), inset 0 0 24px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.55); }
 .card.back::before { border-color: var(--gold); opacity: 0.6; inset: 9px; }
 .card.back .ic { position: absolute; left: 50%; top: 50%; width: 46%; height: 46%; transform: translate(-50%, -50%); color: var(--gold); }
+/* spell cards: parchment like the rest, in a gold frame, with the spell's name across the top and its emblem */
+.card.spell { --sc: #7a5410;
+  box-shadow: inset 0 0 14px rgba(110, 70, 20, 0.5), inset 0 0 0 3px rgba(180, 132, 34, 0.75), inset 0 0 0 4px rgba(90, 60, 20, 0.35), 0 2px 6px rgba(0, 0, 0, 0.55); }
+.card.spell::before { border: 1.5px solid #b48422; opacity: 0.8; inset: 7px; }
+.card.spell .sp-name { position: absolute; left: 0; right: 0; top: 12px; text-align: center; white-space: nowrap; font-weight: 800; font-size: 13px; line-height: 1; letter-spacing: 0.05em; color: #4a2e0c; }
+.card.spell .sp-art { position: absolute; left: 50%; top: 58%; width: 80px; height: 80px; transform: translate(-50%, -50%); background: var(--art) center / contain no-repeat; }
+.card.spell .rk { color: #7a5410; }
+.card.spell.placed .sp-art { top: 64%; width: 62px; height: 62px; }
+.card.sp-blink { --art: url("img/spell-blink.webp"); } .card.sp-glamour { --art: url("img/spell-glamour.webp"); } .card.sp-scry { --art: url("img/spell-scry.webp"); }
+.card.sp-recall { --art: url("img/spell-recall.webp"); } .card.sp-haggle { --art: url("img/spell-haggle.webp"); } .card.sp-renew { --art: url("img/spell-renew.webp"); }
+
 /* small cards inside charters */
 .card.sm { width: 36px; height: 50px; border-radius: 4px; box-shadow: inset 0 0 6px rgba(110, 70, 20, 0.5), 0 1px 3px rgba(0, 0, 0, 0.5); }
 .card.sm::before { inset: 2px; border-radius: 3px; }
@@ -258,6 +365,11 @@ button { font-family: var(--display); }
 .card.sm .rk { font-size: 14px; }
 .card.sm .emb { width: 22px; height: 22px; top: 67%; background-image: var(--pip); }
 .card.sm .pip, .card.sm .wl { display: none; }
+.card.spell.sm { box-shadow: inset 0 0 6px rgba(110, 70, 20, 0.5), inset 0 0 0 1.5px rgba(180, 132, 34, 0.8), 0 1px 3px rgba(0, 0, 0, 0.5); }
+.card.spell.sm .sp-art { top: 66%; width: 28px; height: 28px; }
+.card.spell.sm::before { inset: 2px; border-width: 1px; }
+.card.spell.md .sp-art { width: 58px; height: 58px; top: 59%; } .card.spell.md .sp-name { font-size: 10px; top: 9px; }
+.card.spell.md::before { inset: 5px; }
 .card.md { width: 72px; height: 100px; } .card.md .idx { left: 3px; top: 5px; width: 24px; } .card.md .rk { font-size: 20px; } .card.md .emb { width: 56px; height: 56px; } .card.md .pip { width: 16px; height: 16px; }
 
 /* ---------------------------------------------------------------- your board */
@@ -317,6 +429,7 @@ button { font-family: var(--display); }
 .flier { position: absolute !important; z-index: 60; pointer-events: none; transform-origin: 50% 50%; margin: 0 !important; }
 .flier.card:not(.back), .flier.quest, .flier.offer { box-shadow: inset 0 0 14px rgba(110, 70, 20, 0.5), 0 8px 18px rgba(0, 0, 0, 0.6); }
 .flier.show { box-shadow: inset 0 0 34px rgba(122, 82, 32, 0.4), 0 0 0 3px var(--gold), 0 12px 30px rgba(0, 0, 0, 0.7); }
+.flier.show.next::after { content: "The saga continues"; background: #3a2d7a; }
 .flier.show::after { content: "Completed"; position: absolute; left: 50%; top: -13px; transform: translateX(-50%); white-space: nowrap; background: #2c6e2f; color: #f7ecd2;
   font-family: var(--display); font-weight: 800; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 10px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); }
 .flash { position: absolute; z-index: 27; pointer-events: none; border-radius: 10px; animation: flash 1.4s ease-out forwards; }
@@ -363,6 +476,8 @@ button { font-family: var(--display); }
 #panel .cards { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
 #panel .cards .card { cursor: pointer; }
 #panel .credits { font-size: calc(15px * var(--fs)); color: var(--ink-soft); }
+#panel .record { margin: 4px 0 0; font-size: calc(15px * var(--fs)); font-style: italic; color: var(--ink-soft); text-align: center; }
+#panel td small .ic { width: 13px; height: 13px; vertical-align: -2px; margin-right: 1px; color: var(--ink-soft); }
 #panel .emblems { display: flex; justify-content: center; gap: 18px; margin-bottom: 6px; }
 #panel .emblems i { width: 58px; height: 58px; background: center / contain no-repeat; }
 #panel .emblems .e0 { background-image: url("img/emb-dragon.webp"); } #panel .emblems .e1 { background-image: url("img/emb-moon.webp"); }
@@ -404,6 +519,39 @@ button { font-family: var(--display); }
 /* words that sit straight on a frame get a dark halo */
 .zone-title, #qmore, #board, .seat .plate { text-shadow: 0 1px 2px #000, 0 0 6px rgba(0, 0, 0, 0.85), 0 0 12px rgba(0, 0, 0, 0.55); }
 #board .card, #board .quest, #board .btn, .seat .plate .portrait { text-shadow: none; }
+
+/* ---------------------------------------------------------------- the start screen */
+#title { position: absolute; inset: 0; z-index: 28; display: flex; flex-direction: column; align-items: center; overflow: hidden; background: #1a0f07; }
+#title.hidden { display: none; }
+#title .t-art { position: absolute; inset: 0; background: url("img/map.webp") center / cover no-repeat; filter: brightness(0.8) saturate(0.95); transform-origin: 56% 46%; animation: titledrift 80s ease-in-out infinite alternate; }
+#title::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(ellipse 58% 72% at 50% 44%, rgba(12, 7, 3, 0.12), rgba(12, 7, 3, 0.8)), linear-gradient(180deg, rgba(12, 7, 3, 0.4), rgba(12, 7, 3, 0) 36%, rgba(12, 7, 3, 0.45)); }
+@keyframes titledrift { to { transform: scale(1.09); } }
+#title .t-logo, #title-menu, #title-foot { position: relative; z-index: 2; }
+#title .t-logo { margin-top: 44px; text-align: center; }
+#title .t-mark { display: block; width: 660px; margin: 0 auto; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.75)); }
+/* a dusk behind the logo, so the small words under it read against the busy town */
+#title .t-logo::before { content: ""; position: absolute; left: 50%; top: 58%; width: 980px; height: 400px; transform: translate(-50%, -50%); z-index: -1;
+  background: radial-gradient(closest-side, rgba(12, 7, 3, 0.72), rgba(12, 7, 3, 0.45) 55%, rgba(12, 7, 3, 0)); }
+#title .t-sub { margin-top: 4px; font-style: italic; font-size: 24px; color: var(--cream); text-shadow: 0 2px 6px #000, 0 0 14px rgba(0, 0, 0, 0.8); }
+#title-menu { margin-top: 30px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+#title-menu .btn.big { width: 360px; padding: 12px 0 11px; font-size: 22px; letter-spacing: 0.14em; border-radius: 10px; }
+#title-menu .t-row { display: flex; gap: 14px; margin-top: 2px; }
+#title-menu .t-row .btn { width: 173px; padding: 8px 0; font-size: 17px; letter-spacing: 0.1em; }
+#title-foot { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; font-size: 15px; color: var(--cream-dim); text-shadow: 0 1px 3px #000, 0 0 8px rgba(0, 0, 0, 0.8); }
+#title-foot .record { margin: 0 0 4px; font-size: 16px; font-style: italic; }
+/* on the start screen only the corner's icon buttons stay */
+#stage.titled #menu .row:first-child { visibility: hidden; }
+#panel.narrow { width: 540px; }
+#panel .note { margin: 8px 0 0; font-size: calc(15px * var(--fs)); font-style: italic; color: #7a2a12; }
+
+/* tooltips */
+#tip { position: absolute; left: 0; top: 0; z-index: 60; max-width: 300px; padding: 7px 12px 8px; pointer-events: none; opacity: 0; transition: opacity 0.12s;
+  font-size: calc(15px * min(var(--fs), 1.2)); line-height: 1.35; color: var(--ink); text-shadow: none; border: 1px solid #5a3c1c; border-radius: 8px;
+  background: #f1e3bf url("img/parchment.webp"); box-shadow: inset 0 0 10px rgba(122, 82, 32, 0.4), 0 0 0 1.5px rgba(227, 181, 75, 0.6), 0 6px 16px rgba(0, 0, 0, 0.55); }
+#tip.on { opacity: 1; }
+#tip b { font-family: var(--display); font-weight: 800; }
+#tip i { color: var(--ink-soft); }
 
 /* the table hides while the menu is up before a game */
 #stage.idle #town, #stage.idle #chronicle, #stage.idle #charters, #stage.idle #offers, #stage.idle #tavern, #stage.idle #board, #stage.idle #opps, #stage.idle #brand, #stage.idle #btn-hint { visibility: hidden; }

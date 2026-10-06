@@ -3,25 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>River</title>
+<title>Drakeharbour Syndicates</title>
 <link rel="preload" href="fonts/cinzel.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="img/map.webp" as="image">
-<link rel="stylesheet" href="river.css?v=51">
+<link rel="preload" href="img/logo.webp" as="image">
+<link rel="stylesheet" href="river.css?v=102">
+<link rel="stylesheet" href="icons.css?v=102">
 </head>
 <body>
 <div id="stage">
   <div id="map"></div>
+  <div id="notice" class="parchment"></div>
   <section id="town"></section>
-  <div id="brand">RIVER<small>working title</small></div>
+  <div id="brand"><img src="img/logo-small.webp" alt="Drakeharbour Syndicates"></div>
+  <div id="final">Final round</div>
+  <div id="mixer" class="parchment hidden"></div>
   <div id="opps"></div>
   <div id="menu">
-    <div class="row"><button class="btn small" id="btn-hint" title="What would a strong player do now?">Hint</button><button class="btn dark small" id="btn-rules">Rules</button><button class="btn dark small" id="btn-menu">Menu</button></div>
-    <div class="row"><button class="btn dark small icon" id="btn-fs-down" title="Smaller text">A&minus;</button><button class="btn dark small icon" id="btn-fs-up" title="Bigger text">A+</button><button class="btn dark small icon" id="btn-music"></button><button class="btn dark small icon" id="btn-sound"></button><button class="btn dark small icon" id="btn-full"></button></div>
+    <div class="row"><button class="btn parch small" id="btn-hint" title="What would a strong player do now?">Hint</button><button class="btn parch small" id="btn-rules">Rules</button><button class="btn parch small" id="btn-menu">Menu</button></div>
+    <div class="row"><button class="btn parch small icon" id="btn-fs-down" title="Smaller text">A&minus;</button><button class="btn parch small icon" id="btn-fs-up" title="Bigger text">A+</button><button class="btn parch small icon" id="btn-music"></button><button class="btn parch small icon" id="btn-sound"></button><button class="btn parch small icon" id="btn-full"></button></div>
   </div>
 
-  <section id="offers" class="leather"><div class="zone-title">Charters<br>on offer</div><div id="offer"></div></section>
+  <section id="offers" class="leather"><div class="zone-title">Charters<br>on offer<button class="mini" id="btn-reoffer" title="Put these Charters to the bottom of their deck and turn up fresh ones (1 AP)">Fresh · 1 AP</button></div><div id="offer"></div></section>
   <section id="charters" class="leather"><div class="zone-title">Founded charters</div><div id="founded"></div></section>
-  <section id="tavern" class="leather"><div class="zone-title">The Tavern <span id="qmore"></span></div><div id="qrow"></div></section>
+  <section id="tavern" class="leather"><div class="zone-title">The Tavern <span id="qmore"></span><button class="mini" id="btn-request">Fresh · 1 AP</button></div><div id="qrow"></div><div id="qsealed"></div></section>
   <section id="chronicle" class="parchment" title="Click to read everything that has happened"><div class="panel-title">Chronicle</div><div id="log"></div></section>
 
   <section id="board" class="leather">
@@ -37,8 +42,9 @@
     </div>
     <div id="hand"></div>
     <div id="actions">
-      <button class="btn" id="btn-writ"><i class="ic ic-writ"></i>Use Writ</button>
+      <button class="btn" id="btn-cast"><i class="ic ic-cast"></i>Cast</button>
       <button class="btn dark" id="btn-clear">Clear</button>
+      <button class="btn dark" id="btn-undo" title="Take back your last move (Ctrl+Z)">Undo</button>
       <span class="spacer"></span>
       <div id="sortbar">SORT <button class="btn dark small" id="sort-suit">Suit</button><button class="btn dark small" id="sort-rank">Rank</button></div>
       <span class="spacer"></span>
@@ -47,13 +53,23 @@
     <div id="my-quests"></div>
   </section>
 
+  <div id="title" class="hidden">
+    <div class="t-art"></div>
+    <div class="t-logo">
+      <img class="t-mark" src="img/logo.webp" alt="Drakeharbour Syndicates">
+      <div class="t-sub">charters, quests and cards in a guild town</div>
+    </div>
+    <nav id="title-menu"></nav>
+    <div id="title-foot"></div>
+  </div>
   <div id="coach" class="parchment"></div>
   <div id="overlay" class="hidden"><div id="panel" class="parchment"></div></div>
+  <div id="tip"></div>
 </div>
-<script src="river-music.js?v=51"></script>
-<script src="river-core.js?v=51"></script>
-<script src="river-ai.js?v=51"></script>
-<script src="river-tutorial.js?v=51"></script>
-<script src="river-app.js?v=51"></script>
+<script src="river-music.js?v=102"></script>
+<script src="river-core.js?v=102"></script>
+<script src="river-ai.js?v=102"></script>
+<script src="river-tutorial.js?v=102"></script>
+<script src="river-app.js?v=102"></script>
 </body>
 </html>

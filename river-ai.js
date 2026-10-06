@@ -3,12 +3,12 @@
 //   planner():      tries several greedy variants for this turn in sampled
 //                   futures and plays the one that does best
 const RC = typeof module !== "undefined" && typeof window === "undefined" ? require("./river-core.js")
-  : { RiverGame, ADJ, DIST, PRODUCES, TAVERN, HARBOUR, SHAPES, CHARACTERS, isSet, isRun, isMeld, fits, shuffle };
+  : { RiverGame, ADJ, DIST, PRODUCES, TAVERN, HARBOUR, SHAPES, CHARACTERS, isSet, isRun, isMeld, isWild, shapeHit, fits, shuffle };
 const AI_NPL = RC.ADJ.length;
 
 // ---------------------------------------------------------------- reading the position
 
-const questValue = (g, pl, q) => q.pts + (q.type === pl.character.favour ? g.o.favourBonus : 0);
+const questValue = (g, pl, q) => q.pts + (q.type === pl.character.favour ? g.o.favourBonus : 0) + (q.saga != null ? [2, 1, 0][q.part] : 0);
 
 // Resources still missing for a player's quests, best quests first.
 function needsOf(g, pl) {
@@ -23,11 +23,12 @@ function needsOf(g, pl) {
 }
 
 // How much a card is worth keeping in this hand.
+const SPELL_KEEP = { glamour: 6, blink: 3, scry: 3, recall: 3, haggle: 2.5, renew: 2.5 };
 function keepValue(card, hand, g, p) {
-  if (card.writ) return 5;
+  if (card.spell) return card.spell === "renew" && !g.charters.some(ch => ch.owner === p) ? 0.8 : SPELL_KEEP[card.spell];
   let v = 0;
   for (const c of hand) {
-    if (c === card || c.writ) continue;
+    if (c === card || c.spell) continue;
     if (c.r === card.r) v += 1.2;
     if (c.s === card.s) { const d = Math.abs(c.r - card.r); if (d === 1) v += 0.8; else if (d === 2) v += 0.4; }
   }
@@ -38,10 +39,10 @@ function keepValue(card, hand, g, p) {
 // Would this card help right now (a meld with the hand, or a lay-off)?
 function useful(card, hand, g) {
   if (!card) return false;
-  if (card.writ) return !hand.some(c => c.writ);
+  if (card.spell) return card.spell === "glamour" || !hand.some(c => c.spell);
   let same = 0;
   const ranks = new Set();
-  for (const c of hand) { if (c.writ) continue; if (c.r === card.r) same++; if (c.s === card.s) ranks.add(c.r); }
+  for (const c of hand) { if (c.spell) continue; if (c.r === card.r) same++; if (c.s === card.s) ranks.add(c.r); }
   if (same >= 2 && g.display.length) return true;
   const r = card.r;
   if (g.display.length && ((ranks.has(r - 1) && ranks.has(r - 2)) || (ranks.has(r + 1) && ranks.has(r + 2)) || (ranks.has(r - 1) && ranks.has(r + 1)))) return true;
@@ -52,13 +53,15 @@ function useful(card, hand, g) {
 function meldOptions(hand) {
   const out = [];
   const byRank = {}, bySuit = [[], [], [], []];
-  for (const c of hand) { if (c.writ) continue; (byRank[c.r] = byRank[c.r] || []).push(c); bySuit[c.s].push(c); }
+  for (const c of hand) { if (c.spell) continue; (byRank[c.r] = byRank[c.r] || []).push(c); bySuit[c.s].push(c); }
   for (const r in byRank) {
     const grp = byRank[r];
-    if (grp.length >= 3) { out.push(grp.slice()); if (grp.length === 4) for (let i = 0; i < 4; i++) out.push(grp.filter((_, j) => j !== i)); }
+    if (grp.length >= 3) { out.push(grp.slice()); if (grp.length >= 4) for (let i = 0; i < grp.length; i++) out.push(grp.filter((_, j) => j !== i)); }
   }
-  for (const cs of bySuit) {
-    cs.sort((a, b) => a.r - b.r);
+  for (const all of bySuit) {
+    // one card of each rank: a second copy can't be in the same run
+    all.sort((a, b) => a.r - b.r);
+    const cs = all.filter((c, i) => !i || c.r !== all[i - 1].r);
     let i = 0;
     while (i < cs.length) {
       let j = i;
@@ -70,9 +73,27 @@ function meldOptions(hand) {
   return out;
 }
 
-// The disjoint melds that use the most cards (at most maxCards).
-function bestMelds(hand, maxCards) {
-  const opts = meldOptions(hand).sort((a, b) => b.length - a.length).slice(0, 24);
+// Melds a Glamour would complete: a pair (or three) of a rank, or a run with one card missing.
+function wildMelds(hand) {
+  const w = hand.find(c => c.spell === "glamour");
+  if (!w) return [];
+  const out = [], byRank = {}, bySuit = [[], [], [], []];
+  for (const c of hand) { if (c.spell) continue; (byRank[c.r] = byRank[c.r] || []).push(c); bySuit[c.s].push(c); }
+  for (const r in byRank) if (byRank[r].length >= 2 && RC.isSet(byRank[r].concat([w]))) out.push(byRank[r].concat([w]));
+  for (const all of bySuit) {
+    all.sort((a, b) => a.r - b.r);
+    const cs = all.filter((c, i) => !i || c.r !== all[i - 1].r);
+    for (let i = 0; i < cs.length; i++) for (let j = i + 1; j < cs.length; j++) {
+      const win = cs.slice(i, j + 1), span = win[win.length - 1].r - win[0].r + 1;
+      if (span - win.length <= 1 && RC.isMeld(win.concat([w]))) out.push(win.concat([w]));
+    }
+  }
+  return out;
+}
+
+// The disjoint melds that use the most cards (at most maxCards); with a Glamour, also those it completes.
+function bestMelds(hand, maxCards, wild = false) {
+  const opts = meldOptions(hand).concat(wild ? wildMelds(hand) : []).sort((a, b) => b.length - a.length).slice(0, 28);
   let best = [], bestN = 0;
   const used = new Set();
   const rec = (i, chosen, n) => {
@@ -95,7 +116,7 @@ function chooseCharter(g, p, meld, pick = 0) {
   const { missing } = needsOf(g, pl);
   const fav = pl.character.favour;
   const scored = g.display.map((def, i) => {
-    let v = RC.SHAPES[def.shape].test(meld) ? g.o.shapeAP * 0.9 : 0;
+    let v = RC.shapeHit(def, meld) ? g.o.shapeAP * 0.9 : 0;
     v += missing[def.res] > 0 ? 1.4 : 0.5;
     // favoured quests lean on one resource (Exploration on all of them)
     if (fav < 4 && def.res === [1, 0, 2, 3][fav]) v += 0.4;
@@ -108,7 +129,7 @@ function chooseCharter(g, p, meld, pick = 0) {
 
 const DEFAULT_PARAMS = { drawDiscard: true, feedOthers: true, apTarget: 0, meld: true, keepPairs: false, charterPick: 0, buyLeft: true };
 
-function pickQuest(g, pl) {
+function pickQuest(g, pl, scoreOnly = false) {
   const { pool } = needsOf(g, pl);
   let best = -1, bv = -Infinity;
   g.qrow.forEach((q, i) => {
@@ -117,7 +138,22 @@ function pickQuest(g, pl) {
     const v = questValue(g, pl, q) - 1.6 * short;
     if (v > bv) { bv = v; best = i; }
   });
-  return best;
+  // a sealed commission: its reward is known, its needs are not (about one resource for every 2.6 renown)
+  const sealed = g.sealedDeck[0];
+  if (sealed) {
+    const spare = pool.reduce((a, b) => a + b, 0);
+    const v = sealed.pts + 0.8 - 1.6 * Math.max(0, sealed.pts / 2.6 - 0.4 * spare);
+    if (v > bv) { bv = v; best = "sealed"; }
+  }
+  return scoreOnly ? bv : best;
+}
+
+// Cast a spell of this kind from your hand, if you can.
+function cast(g, p, kind, arg) {
+  const c = g.players[p].hand.find(x => x.spell === kind);
+  if (!c || !g.castable(p, c)) return false;
+  g.cast(p, c.id, arg);
+  return true;
 }
 
 // Spend AP in town: walk to and work the place that best feeds your quests
@@ -130,16 +166,23 @@ function spendAP(g, p, firstPick = 0) {
     const { missing, pool } = needsOf(g, pl);
     const total = pl.res.reduce((a, b) => a + b, 0);
     const spare = total < o.resCap - 1 ? 0.25 : 0;
+    const blink = !g.t.spellUsed && pl.hand.some(c => c.spell === "blink") && pl.hand.length >= 2;
     if (target < 0) {
       const cands = [];
       for (let s = 0; s < AI_NPL; s++) {
-        const d = RC.DIST[pl.pos][s], left = g.t.ap - d;
+        const walk = g.travel(pl.pos, s), d = blink && walk >= 2 ? 0 : walk, left = g.t.ap - d;
         if (left < 1) continue;
         let val = 0, acts = 0;
         const r = RC.PRODUCES[s];
-        if (r >= 0) { const u = Math.min(left, missing[r]); val = u + (left - u) * spare; acts = left; }
-        else if (s === RC.TAVERN) { if (pl.quests.length < o.questLimit && (g.qrow.length || g.qdeck.length)) { val = [2.6, 1.8, 0.9][pl.quests.length]; acts = 1; } }
-        else if (s === RC.HARBOUR) { let sur = 0, mis = 0; for (let k = 0; k < 4; k++) { sur += pool[k]; mis += missing[k]; } const n = Math.min(left, sur, mis); val = n * 0.85; acts = n; }
+        // what working here costs: 1 AP, more where another piece stands, and rising with each purchase if prices escalate
+        const crowd = o.crowdAP && g.players.some((q, i) => i !== p && q.pos === s) ? o.crowdAP : 0;
+        if (r >= 0) {
+          let n = 0, cost = 0;
+          for (;;) { const c = 1 + crowd + g.priceRise(g.bought(s) + n); if (cost + c > left) break; cost += c; n++; }
+          const units = n * g.yieldAt(s), u = Math.min(units, missing[r]); val = u + (units - u) * spare; acts = cost;
+        }
+        else if (s === RC.TAVERN) { if (left >= 1 + crowd && pl.quests.length < o.questLimit && g.tavernHas()) { val = [2.6, 1.8, 0.9][pl.quests.length]; acts = 1 + crowd; } }
+        else if (s === RC.HARBOUR) { let sur = 0, mis = 0; for (let k = 0; k < 4; k++) { sur += pool[k]; mis += missing[k]; } const two = g.ev("harbour"); const n = Math.min(Math.floor(left / (1 + crowd)), sur, two ? Math.ceil(mis / 2) : mis); val = n * (two ? 1.7 : 0.85); acts = n * (1 + crowd); }
         if (val > 0) cands.push({ s, rate: val / (d + acts) });
       }
       cands.sort((a, b) => b.rate - a.rate);
@@ -148,17 +191,24 @@ function spendAP(g, p, firstPick = 0) {
       pick = 0;
     }
     if (pl.pos !== target) {
-      const step = RC.ADJ[pl.pos].find(n => RC.DIST[n][target] < RC.DIST[pl.pos][target]);
+      if (blink && g.travel(pl.pos, target) >= 2 && cast(g, p, "blink", target)) continue;
+      // a step along the ring road, or through the Square when that's shorter
+      const step = g.neighbours(pl.pos).find(n => g.travel(n, target) < g.travel(pl.pos, target));
       g.move(p, step);
       continue;
     }
     const r = RC.PRODUCES[target];
-    if (r >= 0) { if (missing[r] > 0 || spare > 0) { g.work(p); continue; } }
-    else if (target === RC.TAVERN) { if (g.canWork(p)) { g.work(p, pickQuest(g, pl)); continue; } }
+    if (r >= 0 && missing[r] > 0 && g.rise(target) > 0 && g.t.ap >= 2) cast(g, p, "haggle");
+    if (r >= 0) { if ((missing[r] > 0 || spare > 0) && g.canWork(p)) { g.work(p); continue; } }
+    else if (target === RC.TAVERN) {
+      // nothing worth taking, and AP to spare: pay 1 AP for fresh quests, once
+      if (pl.quests.length < o.questLimit && !g.t.refreshedQ && g.t.ap >= 2 && pickQuest(g, pl, true) < 2.5 && g.canRefreshQuests(p)) { g.refreshQuests(p); g.t.refreshedQ = true; continue; }
+      if (pl.quests.length < o.questLimit && g.canWork(p)) { g.work(p, pickQuest(g, pl)); continue; }
+    }
     else if (target === RC.HARBOUR) {
       let give = -1, get = -1;
       for (let k = 0; k < 4; k++) { if (pool[k] > 0 && (give < 0 || pool[k] > pool[give])) give = k; if (missing[k] > 0 && (get < 0 || missing[k] > missing[get])) get = k; }
-      if (give >= 0 && get >= 0) { g.work(p, [give, get]); continue; }
+      if (give >= 0 && get >= 0 && g.canWork(p)) { g.work(p, [give, get]); continue; }
     }
     target = -1;
   }
@@ -168,18 +218,21 @@ function spendAP(g, p, firstPick = 0) {
 function playCards(g, p, P, keep) {
   const pl = g.players[p];
   if (P.meld && g.display.length) {
-    const playable = pl.hand.filter(c => c !== keep && !c.writ);
-    for (const m of bestMelds(playable, pl.hand.length - 1)) {
+    const playable = pl.hand.filter(c => c !== keep && (!c.spell || c.spell === "glamour"));
+    const plain = bestMelds(playable, pl.hand.length - 1);
+    const wild = g.t.spellUsed ? plain : bestMelds(playable, pl.hand.length - 1, true);
+    const count = ms => ms.reduce((a, m) => a + m.length, 0);
+    for (const m of count(wild) > count(plain) ? wild : plain) {
       if (!g.display.length) break;
       if (P.keepPairs && m.length === 3 && RC.isSet(m)) continue;
       const di = chooseCharter(g, p, m, P.charterPick);
-      if (di >= 0 && g.canPlay(p, m.length)) g.found(p, m.map(c => c.id), di);
+      if (di >= 0 && g.canPlay(p, m.length) && !(m.some(RC.isWild) && g.t.spellUsed)) g.found(p, m.map(c => c.id), di);
     }
   }
   for (let more = true; more;) {
     more = false;
     for (const c of pl.hand.slice()) {
-      if (c === keep || c.writ || pl.hand.length <= 1) continue;
+      if (c === keep || c.spell || pl.hand.length <= 1) continue;
       const own = g.charters.filter(ch => ch.owner === p && RC.fits(c, ch));
       const others = P.feedOthers ? g.charters.filter(ch => ch.owner !== p && RC.fits(c, ch)) : [];
       // keep your own Charter alive if it's about to fade; otherwise take the bigger AP
@@ -200,15 +253,23 @@ function playTurn(g, p, params = DEFAULT_PARAMS) {
   let pl = g.players[p];
   const worst = () => pl.hand.slice().sort((a, b) => keepValue(a, pl.hand, g, p) - keepValue(b, pl.hand, g, p))[0];
   let keep = worst();
-  // 2. a Writ
-  const writ = pl.hand.find(c => c.writ && c !== keep);
-  if (writ && !g.t.writUsed && pl.hand.length >= 2) { g.writ(p, writ.id, pl.hand.length <= 3 ? "draw" : "ap"); keep = worst(); }
+  // 2. a spell: unless a Glamour would complete a meld, Recall a card that plays now, or Scry when short of cards
+  const glamourPlays = pl.hand.some(c => c.spell === "glamour") && wildMelds(pl.hand).length > 0 && g.display.length > 0;
+  if (!glamourPlays) {
+    const hand = pl.hand.filter(c => !c.spell);
+    const i = g.discard.map((c, k) => (useful(c, hand, g) && !c.spell ? k : -1)).filter(k => k >= 0).pop();
+    if (i != null && i >= 0 && cast(g, p, "recall", i)) keep = worst();
+    else if (hand.length <= 4 && cast(g, p, "scry")) keep = worst();
+  }
   // 3. melds and lay-offs
   playCards(g, p, P, keep);
+  // a Charter of yours that will fade at the start of your next turn unless someone lays off on it: Renew it
+  const fading = g.charters.find(ch => ch.owner === p && g.roundsLeft(ch) <= 1);
+  if (fading) cast(g, p, "renew", fading.id);
   // 4. buy the top of the discard pile if it plays at once
   for (let k = 0; k < 2; k++) {
     const top = g.discard[g.discard.length - 1];
-    if (!g.canBuy(p) || !top || top.writ || !useful(top, pl.hand, g)) break;
+    if (!g.canBuy(p) || !top || top.spell || !useful(top, pl.hand, g)) break;
     g.buy(p, "discard");
     playCards(g, p, P, keep);
   }
@@ -255,6 +316,7 @@ function determinize(g, p) {
   x.deck = pool;
   RC.shuffle(x.qdeck);
   RC.shuffle(x.charterDeck);
+  if (x.eventDeck) RC.shuffle(x.eventDeck);
   return x;
 }
 
@@ -291,5 +353,5 @@ const planner = (opts = {}) => {
   return f;
 };
 
-const RiverAI = { greedy, planner, playTurn, evaluate, needsOf, meldOptions, bestMelds, keepValue, useful, chooseCharter, questValue, VARIANTS };
+const RiverAI = { greedy, planner, playTurn, evaluate, needsOf, meldOptions, wildMelds, bestMelds, keepValue, useful, chooseCharter, questValue, pickQuest, VARIANTS };
 if (typeof module !== "undefined" && typeof window === "undefined") module.exports = RiverAI;

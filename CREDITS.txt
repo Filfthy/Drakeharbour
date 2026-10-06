@@ -1,15 +1,15 @@
-River (working title) - credits
-
-Suit emblems (Dragon, Moon, Raven, Tower) and the town map: supplied by BugVictim.
+Drakeharbour Syndicates - credits
 
 Icons from game-icons.net, licensed under CC BY 3.0
 (https://creativecommons.org/licenses/by/3.0/):
   Lorc: metal-bar, candle-light, book-cover, anvil-impact, beer-stein, anchor,
         crossed-swords, prayer, quill-ink, compass, visored-helm, crown, hood,
-        sunbeams, laurels, wax-seal, hourglass, footprint, trade, scroll-unfurled
+        sunbeams, laurels, wax-seal, hourglass, footprint, trade, scroll-unfurled,
+        teleport, domino-mask, crystal-ball, cycle, linked-rings, fairy-wand
   Delapouite: two-coins, shop, church, bookshelf, shaking-hands, monk-face,
-        wizard-face, tower-flag, fleur-de-lys
+        wizard-face, tower-flag, fleur-de-lys, price-tag
   Faithtoken: card-draw, card-discard
+  Quoting: card-pickup
 The icons were recoloured (background removed) for use in the game.
 
 Cinzel typeface by Natanael Gama, SIL Open Font License 1.1 (fonts/OFL.txt).
