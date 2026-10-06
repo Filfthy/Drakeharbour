@@ -1,0 +1,19 @@
+River (working title) - credits
+
+Suit emblems (Dragon, Moon, Raven, Tower) and the town map: supplied by BugVictim.
+
+Icons from game-icons.net, licensed under CC BY 3.0
+(https://creativecommons.org/licenses/by/3.0/):
+  Lorc: metal-bar, candle-light, book-cover, anvil-impact, beer-stein, anchor,
+        crossed-swords, prayer, quill-ink, compass, visored-helm, crown, hood,
+        sunbeams, laurels, wax-seal, hourglass, footprint, trade, scroll-unfurled
+  Delapouite: two-coins, shop, church, bookshelf, shaking-hands, monk-face,
+        wizard-face, tower-flag, fleur-de-lys
+  Faithtoken: card-draw, card-discard
+The icons were recoloured (background removed) for use in the game.
+
+Cinzel typeface by Natanael Gama, SIL Open Font License 1.1 (fonts/OFL.txt).
+
+Parchment, wood and leather textures generated for the game (tools/make-textures.py).
+
+Music and sound effects written for the game and synthesised in the browser (river-music.js).

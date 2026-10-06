@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>River</title>
+<link rel="preload" href="fonts/cinzel.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="img/map.webp" as="image">
+<link rel="stylesheet" href="river.css?v=51">
+</head>
+<body>
+<div id="stage">
+  <div id="map"></div>
+  <section id="town"></section>
+  <div id="brand">RIVER<small>working title</small></div>
+  <div id="opps"></div>
+  <div id="menu">
+    <div class="row"><button class="btn small" id="btn-hint" title="What would a strong player do now?">Hint</button><button class="btn dark small" id="btn-rules">Rules</button><button class="btn dark small" id="btn-menu">Menu</button></div>
+    <div class="row"><button class="btn dark small icon" id="btn-fs-down" title="Smaller text">A&minus;</button><button class="btn dark small icon" id="btn-fs-up" title="Bigger text">A+</button><button class="btn dark small icon" id="btn-music"></button><button class="btn dark small icon" id="btn-sound"></button><button class="btn dark small icon" id="btn-full"></button></div>
+  </div>
+
+  <section id="offers" class="leather"><div class="zone-title">Charters<br>on offer</div><div id="offer"></div></section>
+  <section id="charters" class="leather"><div class="zone-title">Founded charters</div><div id="founded"></div></section>
+  <section id="tavern" class="leather"><div class="zone-title">The Tavern <span id="qmore"></span></div><div id="qrow"></div></section>
+  <section id="chronicle" class="parchment" title="Click to read everything that has happened"><div class="panel-title">Chronicle</div><div id="log"></div></section>
+
+  <section id="board" class="leather">
+    <div id="me-char"></div>
+    <div id="me-renown"></div>
+    <div id="me-ap"></div>
+    <div id="me-res"></div>
+    <div id="me-cap"></div>
+    <div id="status"></div>
+    <div id="piles">
+      <div class="pile" id="deck"><div class="slot"></div><div class="lbl">Deck</div></div>
+      <div class="pile" id="discard"><div class="slot"></div><div class="lbl">Discard</div></div>
+    </div>
+    <div id="hand"></div>
+    <div id="actions">
+      <button class="btn" id="btn-writ"><i class="ic ic-writ"></i>Use Writ</button>
+      <button class="btn dark" id="btn-clear">Clear</button>
+      <span class="spacer"></span>
+      <div id="sortbar">SORT <button class="btn dark small" id="sort-suit">Suit</button><button class="btn dark small" id="sort-rank">Rank</button></div>
+      <span class="spacer"></span>
+      <button class="btn" id="btn-end"><i class="ic ic-discard"></i>Discard &amp; end turn</button>
+    </div>
+    <div id="my-quests"></div>
+  </section>
+
+  <div id="coach" class="parchment"></div>
+  <div id="overlay" class="hidden"><div id="panel" class="parchment"></div></div>
+</div>
+<script src="river-music.js?v=51"></script>
+<script src="river-core.js?v=51"></script>
+<script src="river-ai.js?v=51"></script>
+<script src="river-tutorial.js?v=51"></script>
+<script src="river-app.js?v=51"></script>
+</body>
+</html>

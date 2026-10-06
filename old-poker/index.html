@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>River</title>
+<link rel="stylesheet" href="river.css?v=1">
+</head>
+<body>
+<div id="table">
+  <div id="opps"></div>
+
+  <div id="middle">
+    <div class="zone" id="prize-zone">
+      <div class="label">Prize</div>
+      <div class="row" id="pot"></div>
+      <div class="sub" id="pot-value"></div>
+    </div>
+    <div class="zone" id="river-zone">
+      <div class="label">The river</div>
+      <div class="row" id="river"></div>
+      <div class="sub">oldest leaves on the left</div>
+    </div>
+    <div class="zone" id="queue-zone">
+      <div class="label">Coming</div>
+      <div class="row" id="queue"></div>
+      <div class="sub">joins the river one a turn</div>
+    </div>
+  </div>
+
+  <div id="reveal"></div>
+
+  <div id="me">
+    <div id="status"></div>
+    <div id="hand"></div>
+    <div id="buttons">
+      <button id="btn-clear" class="quiet">Clear</button>
+      <button id="btn-play" class="go">Play</button>
+    </div>
+  </div>
+
+  <div id="scores"></div>
+</div>
+
+<div id="overlay" class="hidden">
+  <div class="panel" id="panel"></div>
+</div>
+
+<script src="river-core.js?v=1"></script>
+<script src="river-ai.js?v=1"></script>
+<script src="river-app.js?v=2"></script>
+</body>
+</html>
