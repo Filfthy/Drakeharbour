@@ -287,7 +287,7 @@ input.vol::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; bor
 #founded.dense .card.sm { width: 26px; height: 36px; }
 #founded.dense .card.sm .emb { width: 18px; height: 18px; }
 #founded.dense .card.sm .idx { left: 0; top: 2px; width: 16px; }
-#founded.dense .card.sm .rk { font-size: 11px; }
+#founded.dense .card.sm .rk { font-size: 15px; }
 /* a full table (more than ten): three narrow columns */
 #founded.densest { grid-template-columns: repeat(3, 130px); gap: 6px 9px; }
 #founded.densest .charter { width: 130px; height: 84px; padding: 5px 8px 5px 13px; }
@@ -377,7 +377,7 @@ input.vol::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; bor
 .card.sm { width: 36px; height: 50px; border-radius: 4px; box-shadow: inset 0 0 6px rgba(140, 72, 14, 0.5), 0 1px 3px rgba(0, 0, 0, 0.5); }
 .card.sm::before { inset: 2px; border-radius: 3px; }
 .card.sm .idx { left: 1px; top: 3px; width: 20px; }
-.card.sm .rk { font-size: 14px; }
+.card.sm .rk { font-size: 19px; }
 .card.sm .emb { width: 22px; height: 22px; top: 67%; background-image: var(--pip); }
 .card.sm .pip, .card.sm .wl { display: none; }
 .card.spell.sm { box-shadow: inset 0 0 6px rgba(140, 72, 14, 0.5), inset 0 0 0 1.5px rgba(180, 132, 34, 0.8), 0 1px 3px rgba(0, 0, 0, 0.5); }
