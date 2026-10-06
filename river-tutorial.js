@@ -129,7 +129,7 @@ const TUT_STEPS = [
   },
   {
     head: g => (typeof app !== "undefined" && app.targeting ? "Now click the <b>Library</b> on the map." : "Select your <b>Blink</b> spell and press <b>Cast</b>."),
-    more: "Spells are special cards, one a turn. Blink moves your piece to any place for free. Others draw cards, take one back from the discard pile, cut your prices, or keep a Charter from fading. Glamour is wild in a meld.",
+    more: "Spells are special cards, one a turn. Blink moves your piece to any place for free. Others draw cards, take one back from the discard pile, cut your prices, or renew a Charter before it lapses. Glamour is wild in a meld.",
     allow: (k, i) => (k === "cast" && i === "blink") || (k === "blink-to" && i === LIBRARY), done: g => !secondTurn(g) || g.t.spellUsed,
     hi: g => (typeof app !== "undefined" && app.targeting ? { sel: [`.place[data-sp="${LIBRARY}"]`] } : { cards: g.players[0].hand.filter(c => c.spell === "blink").map(c => c.id), sel: ["#btn-cast"] })
   },
@@ -151,7 +151,7 @@ const TUT_STEPS = [
   },
   {
     head: "That's how the game goes. <b>Play on</b> against Ser Aldric, or go back to the menu.",
-    more: "A Charter nobody lays off on for three rounds fades. At the Tavern, look for the <b>sealed commission</b>, which pays more but hides what it needs, and for <b>sagas</b>, marked <b>Part 1/3</b>, quests in three parts. In a real game each round brings a <b>town event</b>, on the notice at the left of the town. The first to 100 renown ends the game at the end of that round.",
+    more: "A Charter nobody lays off on for three rounds lapses. At the Tavern, look for the <b>sealed commission</b>, which pays more but hides what it needs, and for <b>sagas</b>, marked <b>Part 1/3</b>, quests in three parts. In a real game each round brings a <b>town event</b>, on the notice at the left of the town. The first to 100 renown ends the game at the end of that round.",
     finish: true, allow: () => true
   }
 ];

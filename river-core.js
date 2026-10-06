@@ -51,7 +51,7 @@ const SPELLS = {
   scry: { name: "Scry", text: "Draw two cards from the deck." },
   recall: { name: "Recall", text: "Take any card from the discard pile." },
   haggle: { name: "Haggle", text: "Every vendor's price drops back to 1 stamina." },
-  renew: { name: "Renew", text: "One of your Charters starts its fading countdown again from full." }
+  renew: { name: "Renew", text: "One of your Charters is renewed: its rounds before it lapses start again from full." }
 };
 
 // Town events, one a round, the same for everyone.
@@ -150,6 +150,8 @@ const RV_DEFAULTS = {
   perVendor: true,  // each vendor (the Market, Forge, Temple, Library and the card stall) keeps its own count
   crowdAP: 0,       // extra AP to work a place where another player's piece stands
   questCards: true,  // completing a quest draws cards: 1 for a small one, 2 for a middling one, 3 for a big one
+  refill: 0,         // at the start of your turn, a hand smaller than this is topped up from the deck, before the draws
+  crowdLapse: 8,     // with this many Charters founded or more, they last a round less untended (0: never)
   setSuits: "found", // "distinct": a set's cards must all be different suits (so a set holds at most four);
                      // "found": a new set needs different suits, but any card of its rank can be laid off on it
   runAP: 0,          // extra AP for each card of a run, when it founds a Charter
@@ -314,7 +316,9 @@ class RiverGame {
   }
 
   // Rounds a Charter has left before it fades (0: fades at its owner's next turn).
-  roundsLeft(ch) { return this.o.life - Math.floor((this.turnCount - ch.touched) / this.o.players); }
+  // How many rounds a Charter lasts untended: a round less when the town is crowded with them.
+  life() { return this.o.life - (this.o.crowdLapse && this.charters.length >= this.o.crowdLapse ? 1 : 0); }
+  roundsLeft(ch) { return this.life() - Math.floor((this.turnCount - ch.touched) / this.o.players); }
 
   startTurn() {
     const p = this.turn, o = this.o, pl = this.pl(p);
@@ -322,7 +326,7 @@ class RiverGame {
     const keep = [];
     this.lastFaded = [];
     for (const ch of this.charters) {
-      if (ch.owner === p && this.turnCount - ch.touched >= o.players * o.life) {
+      if (ch.owner === p && this.turnCount - ch.touched >= o.players * this.life()) {
         for (const c of ch.cards) this.deck.splice(Math.floor(this.rnd() * (this.deck.length + 1)), 0, unplace(c));
         this.charterDeck.push(ch.def);
         this.lastFaded.push(ch);
@@ -335,6 +339,9 @@ class RiverGame {
     this.lastRent = [0, 0, 0, 0];
     for (const ch of this.charters) if (ch.owner === p) { pl.res[ch.def.res] += o.rent; this.lastRent[ch.def.res] += o.rent; if (this.stats) this.stats.fromRent += o.rent; }
     this.t = { drawsLeft: o.draws, ap: o.freeAP + (this.ev("progress") ? 1 : 0), spellUsed: false, buys: 0, bought: {}, discarded: false, handed: 0 };
+    // a short hand is topped up
+    this.lastRefill = [];
+    while (o.refill && pl.hand.length < o.refill) { const c = this.draw1(); if (!c) break; pl.hand.push(c); this.lastRefill.push(c); }
   }
 
   refillDisplay() { while (this.display.length < this.o.display && this.charterDeck.length) this.display.push(this.charterDeck.shift()); }

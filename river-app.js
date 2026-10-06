@@ -83,7 +83,7 @@ function cardEl(c, size = "") {
   e.dataset.id = c.id;
   return e;
 }
-// A Charter's life as a ring of slices, one for each round; they go out one by one as it fades,
+// A Charter's life as a ring of slices, one for each round; they go out one by one as it nears lapsing,
 // green while it's healthy, then amber, then red. A lay-off on the Charter fills the ring again.
 function fadeRing(left, life, tag = "div") {
   const n = Math.max(1, life), on = Math.max(0, Math.min(n, left)), r = 10, c = 12, f = on / n;
@@ -95,8 +95,8 @@ function fadeRing(left, life, tag = "div") {
     const a0 = -Math.PI / 2 + (i * 2 * Math.PI) / n, a1 = a0 + (2 * Math.PI) / n;
     s += `<path class="${i < on ? "on" : "off"}" d="M${c} ${c} L${p(a0)} A${r} ${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${p(a1)}Z"/>`;
   }
-  const tip = left <= 0 ? "<b>Fading</b><br>It fades at its owner's next turn, unless someone lays off on it."
-    : `<b>${plural(left, "round")} left</b><br>It fades if nobody lays off on it for that long. A lay-off fills the ring again.`;
+  const tip = left <= 0 ? "<b>Lapsing</b><br>It lapses at its owner's next turn, unless someone lays off on it."
+    : `<b>${plural(left, "round")} left</b><br>It lapses if nobody lays off on it for that long. A lay-off fills the ring again.`;
   return `<${tag} class="fade ${lvl}" data-tip="${tip}"><svg class="ring" viewBox="0 0 24 24"><circle class="rim" cx="${c}" cy="${c}" r="${r + 1}"/>${s}</svg></${tag}>`;
 }
 // A card face down. The back is shown four ways (as drawn, upside down, mirrored, both), so cards side by side
@@ -296,15 +296,17 @@ class App {
   // Volume sliders for the music and the effects: on the start screen, and under the music button.
   volRows() {
     const row = (k, label) => `<div class="mx-row"><span>${label}</span><input type="range" class="vol" data-k="${k}" min="0" max="100" step="1" aria-label="${label} volume"><b class="vol-v" data-k="${k}"></b></div>`;
-    return row("music", "Music") + row("sfx", "Effects");
+    return row("music", "Music") + row("sfx", "Effects") + row("amb", "Town");
   }
   wireVols(root) {
     root.querySelectorAll("input.vol").forEach(inp => {
       const k = inp.dataset.k;
-      inp.value = Math.round(100 * (k === "music" ? (Music.on ? Music.volume : 0) : Sfx.volume));
+      inp.value = Math.round(100 * (k === "music" ? (Music.on ? Music.volume : 0) : k === "amb" ? Ambience.volume : Sfx.volume));
       inp.oninput = () => {
         const v = inp.value / 100;
-        if (k === "music") Music.setVolume(v); else { Sfx.setVolume(v); Music.ensure(); Sfx.flick(); }
+        if (k === "music") Music.setVolume(v);
+        else if (k === "amb") { Music.ensure(); Ambience.setVolume(v); }
+        else { Sfx.setVolume(v); Music.ensure(); Sfx.flick(); }
         this.audioUi();
       };
     });
@@ -321,8 +323,9 @@ class App {
     const m = $("btn-music"), s = $("btn-sound"), on = Music.on && Music.volume > 0;
     m.innerHTML = on ? ICONS.music : ICONS.musicOff;
     m.title = on ? `Music: ${Math.round(Music.volume * 100)}% (click for volume)` : "Music: off (click for volume)";
-    document.querySelectorAll("b.vol-v").forEach(b => { b.textContent = b.dataset.k === "music" ? (on ? Math.round(Music.volume * 100) + "%" : "off") : (Sfx.volume ? Math.round(Sfx.volume * 100) + "%" : "off"); });
-    document.querySelectorAll("input.vol").forEach(i => { if (document.activeElement !== i) i.value = Math.round(100 * (i.dataset.k === "music" ? (Music.on ? Music.volume : 0) : Sfx.volume)); });
+    const lvl = k => (k === "music" ? (on ? Music.volume : 0) : k === "amb" ? Ambience.volume : Sfx.volume);
+    document.querySelectorAll("b.vol-v").forEach(b => { const v = lvl(b.dataset.k); b.textContent = v ? Math.round(v * 100) + "%" : "off"; });
+    document.querySelectorAll("input.vol").forEach(i => { if (document.activeElement !== i) i.value = Math.round(100 * lvl(i.dataset.k)); });
     m.classList.toggle("muted", !on || !Music.sound);
     s.innerHTML = Music.sound ? ICONS.sound : ICONS.muted;
     s.title = Music.sound ? "Sound: on" : "Sound: off";
@@ -452,7 +455,9 @@ class App {
         <li>Once a set is down, any card of its rank can be laid off on it, a second copy of a suit too. A run takes the next card at either end.</li>
         <li><b>Found</b> a Charter by laying a meld on one on offer: 1 stamina and 1 renown per card, and ${o.shapeAP} stamina more for its preferred shape.</li>
         <li><b>Lay off</b> a card that extends a founded Charter: ${o.layoffAP} stamina on someone else's (its owner gets 1 resource), ${o.ownLayoffAP} on your own.</li>
-        <li>A Charter nobody lays off on for ${o.life} rounds <b>fades</b>, and its cards go back into the deck.</li>
+        <li>A Charter nobody lays off on for ${o.life} rounds <b>lapses</b>, and its cards go back into the deck. A Renew spell keeps it going.</li>
+        <li>When the town is crowded, with ${o.crowdLapse} or more Charters founded, they last a round less.</li>
+        <li>If the deck and the discard pile both run out, the Charter left alone longest lapses at once, to fill the deck again.</li>
         <li>A <b>Glamour</b> can stand in for one card in a new meld, but that meld earns no shape bonus.</li></ul>`)}
       ${sec("Spells", `<p>One spell a turn, after your draws. Select it and press <b>Cast</b>. A Glamour counts when you meld it.</p>
         <ul>${Object.values(SPELLS).map(s => `<li><b>${s.name}:</b> ${s.text}</li>`).join("")}</ul>`)}
@@ -498,7 +503,7 @@ class App {
     rows.push([stTok(), `Prefers <b>${SHAPES[d.shape].text}</b>: +${g.o.shapeAP} stamina when founded that way.`]);
     if (ch) {
       const left = g.roundsLeft(ch), ext = extenders(g, ch), mine = me.hand.filter(c => fits(c, ch));
-      rows.push([fadeRing(left, g.o.life, "span"), left <= 0 ? "<b>Fades</b> at its owner's next turn unless someone lays off on it." : `Fades in <b>${plural(left, "round")}</b> if nobody lays off on it.`]);
+      rows.push([fadeRing(left, g.life(), "span"), left <= 0 ? "<b>Lapses</b> at its owner's next turn unless someone lays off on it." : `Lapses in <b>${plural(left, "round")}</b> if nobody lays off on it.${g.life() < g.o.life ? " The town is crowded, so Charters last a round less." : ""}`]);
       rows.push(["buy", ext.length ? `Lay off: <b>${ext.join(" or ")}</b>. ${ch.owner === 0 ? `+${g.o.ownLayoffAP} stamina for you.` : `+${g.o.layoffAP} stamina for you, 1 ${RES[d.res]} for its owner.`}` : "Nothing more can be laid off on it."]);
       if (mine.length) rows.push(["quest", `You hold <b>${cardsTxt(mine)}</b>.`]);
     } else {
@@ -629,7 +634,7 @@ class App {
         const pre = { turn: g.turn, ended: g.endTriggered, ap: g.t ? g.t.ap : 0, pl: g.players.map(x => ({ res: x.res.slice(), hand: x.hand.slice(), quests: x.quests.slice(), pos: x.pos })), charters: g.charters.map(ch => ({ id: ch.id, owner: ch.owner, def: ch.def, cards: ch.cards.slice() })) };
         const r = orig.apply(g, a);
         const texts = [].concat(describe(pre, a, r) || []);
-        for (const ch of g.starved || []) texts.push(`<span class="faint">The deck ran out: ${whose(ch.owner)} <i>${ch.def.name}</i> faded, and its cards were shuffled in.</span>`);
+        for (const ch of g.starved || []) texts.push(`<span class="faint">The deck ran out: ${whose(ch.owner)} <i>${ch.def.name}</i> lapsed, and its cards were shuffled in.</span>`);
         g.starved = null;
         if (app.g === g) app.events.push({ texts, snap: g.clone(), fn, p: pre.turn, args: a, r, pre, faded: (g.lastFaded || []).slice(), next: g.turn,
           expired: fn === "endTurn" ? g.lastExpired : null, nextPart: fn === "handIn" && r ? g.lastNext : null });
@@ -649,7 +654,7 @@ class App {
       if (k === "scry") return `${N(p)} cast ${nm}: ${p === 0 ? `drew ${got.map(cardTxt).join(" and ")}` : "two cards"}.`;
       if (k === "recall") return `${N(p)} cast ${nm} and took ${cardTxt(got[0])} from the discard pile.`;
       if (k === "haggle") return `${N(p)} cast ${nm}: prices start again.`;
-      return `${N(p)} cast ${nm}: the <i>${pre.charters.find(x => x.id === arg).def.name}</i> won't fade yet.`;
+      return `${N(p)} cast ${nm}: the <i>${pre.charters.find(x => x.id === arg).def.name}</i> is renewed.`;
     });
     wrap("buy", (pre, [p, from], c) => (from === "discard" && c ? `${N(p)} bought ${cardTxt(c)} from the discard pile.` : p === 0 && c ? `${N(0)} bought ${cardTxt(c)}.` : `${N(p)} bought a card.`));
     wrap("move", (pre, [p, dest]) => `${N(p)} walked to the ${PLACES[dest]}.`);
@@ -680,7 +685,7 @@ class App {
       if (g.over) return out;
       if (g.newEvent) out.push(`<b>Round ${g.round}.</b> Town event: <b>${g.newEvent.name}</b>. ${g.newEvent.text}`);
       if (g.lastExpired) out.push(`<span class="faint"><i>${g.lastExpired.name}</i> left the Tavern.</span>`);
-      for (const ch of g.lastFaded || []) out.push(`<span class="faint">${whose(ch.owner).replace(/^y/, "Y")} <i>${ch.def.name}</i> faded.</span>`);
+      for (const ch of g.lastFaded || []) out.push(`<span class="faint">${whose(ch.owner).replace(/^y/, "Y")} <i>${ch.def.name}</i> lapsed.</span>`);
       const rent = (g.lastRent || []).map((n, r) => (n ? `+${n} ${RES[r]}` : "")).filter(Boolean);
       if (rent.length) out.push(`<span class="faint">${whose(g.turn).replace(/^y/, "Y")} Charters paid ${rent.join(", ")}.</span>`);
       return out;
@@ -778,7 +783,8 @@ class App {
         const ch = e.r.ch, tile = this.q(`.offer[data-i="${e.args[2]}"]`);
         fx.charter = ch.id;
         fx.flash = ch.id;
-        if (tile) F.push({ make: () => { const t = tile.cloneNode(true); t.classList.remove("can", "hit"); t.querySelectorAll(".gain").forEach(x => x.remove()); return t; }, from: this.box(tile), toFn: () => this.q(`.charter[data-id="${ch.id}"]`), ms: 300, quiet: true });
+        if (tile) F.push({ make: () => { const t = tile.cloneNode(true); t.classList.remove("can", "hit"); t.querySelectorAll(".gain").forEach(x => x.remove()); return t; }, from: this.box(tile), toFn: () => this.q(`.charter[data-id="${ch.id}"]`), ms: 300, quiet: true, land: () => Sfx.seal() });
+        else Sfx.seal();
         ch.cards.forEach((c, k) => {
           fx.hide.add(c.id);
           F.push({ make: () => cardEl(c), from: this.fromHand(p, c.id), toFn: () => this.q(`.charter[data-id="${ch.id}"] .card[data-id="${c.id}"]`), delay: 120 + k * 80 });
@@ -798,6 +804,7 @@ class App {
         toDiscard(c);
         Sfx.spell();
         if (k === "blink") {
+          Sfx.whoosh();
           fx.pawn = p;
           F.push({ make: () => pawnEl(p), from: this.box(this.q(`.place[data-sp="${e.pre.pl[p].pos}"] .pawn[data-p="${p}"]`)), toFn: () => this.q(`.place[data-sp="${arg}"] .pawn[data-p="${p}"]`), ms: 560, delay: 120, quiet: true });
         } else if (k === "scry" || k === "recall") {
@@ -817,6 +824,8 @@ class App {
         break;
       case "work": {
         const sp = e.pre.pl[p].pos, m = this.box(this.q(`.place[data-sp="${sp}"] .medal`));
+        if (sp === TAVERN) (e.args[1] === "sealed" ? Sfx.crack() : Sfx.mug());
+        else ({ [MARKET]: () => Sfx.coins(), [FORGE]: () => Sfx.anvil(), [TEMPLE]: () => Sfx.templeBell(), [LIBRARY]: () => Sfx.page(), [HARBOUR]: () => Sfx.harbour() })[sp]();
         const at = m && { cx: m.cx, cy: m.cy, w: 30, h: 30 };
         if (PRODUCES[sp] >= 0) token(p, PRODUCES[sp], at);
         else if (sp === HARBOUR) {
@@ -848,8 +857,11 @@ class App {
         // the cards it draws come off the deck
         const had = new Set(e.pre.pl[p].hand.map(x => x.id));
         e.snap.players[p].hand.filter(x => !had.has(x.id)).forEach((x, n) => arrive(x, false, deckBox(), (p === 0 ? 520 : 1300) + n * 140));
+        // the last round begins
+        if (e.snap.endTriggered && !e.pre.ended) setTimeout(() => Sfx.finalRound(), 1100 * SPEED);
         // a saga: the next part arrives, shown for a moment on its way
         if (e.nextPart) {
+          setTimeout(() => Sfx.horn(), ((p === 0 ? 560 : 1600) + 120) * SPEED);
           fx.quest = p;
           const at = p === 0 ? { cx: 1370, cy: 560, w: 184, h: 102 } : (() => { const s = this.box(this.seat(p)); return s && { cx: s.cx, cy: s.cy + 160, w: 184, h: 102 }; })();
           F.push({ make: () => { const d = this.questEl(e.nextPart, null, "card-q"); d.classList.add("show", "next"); return d; }, from: at && { cx: at.cx, cy: at.cy + 30, w: 30, h: 17 }, via: at, hold: 900,
@@ -859,6 +871,8 @@ class App {
       }
       case "endTurn": {
         if (e.faded.length) Sfx.riffle();
+        const sum = r => r.reduce((a, b) => a + b, 0);
+        if (p === 0 && (sum(e.snap.players[0].res) < sum(e.pre.pl[0].res) || e.snap.players[0].hand.length < e.pre.pl[0].hand.length)) Sfx.drop();
         // the quest longest on offer leaves the Tavern
         if (e.expired && this.q("#qrow").children[0]) { const src = this.q("#qrow").children[0]; F.push({ make: () => this.questEl(e.expired, null, "strip"), from: this.box(src), toFn: () => this.q("#qmore"), ms: 520, quiet: true }); }
         for (const ch of e.faded) {
@@ -882,6 +896,7 @@ class App {
     const g = this.g;
     while (this.events.length) {
       const e = this.events.shift();
+      Sfx.dim = e.p !== 0;
       e.texts.forEach(t => this.log(t));
       if (e.p !== 0 && e.texts.length && !/^<span class="faint/.test(e.texts[0])) this.aiSays = e.texts[0];
       const { F, fx } = this.plan(e);
@@ -892,12 +907,16 @@ class App {
       if (this.g !== g) return;
       this.fx = noFx();
       this.render();
-      if (fx.flash >= 0) { this.glow(this.q(`.charter[data-id="${fx.flash}"]`), "flash", 1500); Sfx.chime(); }
+      if (fx.flash >= 0) { this.glow(this.q(`.charter[data-id="${fx.flash}"]`), "flash", 1500); if (e.fn !== "found") Sfx.chime(); }
       if (fx.turnover) { const el = $(fx.turnover); el.classList.remove("turnover"); void el.offsetWidth; el.classList.add("turnover"); await wait(450 * SPEED); }
-      if (e.p === 0 && e.snap.turn === 0 && e.snap.t && e.snap.t.ap > e.pre.ap) this.bumpAP();
+      if (e.p === 0 && e.snap.turn === 0 && e.snap.t) {
+        if (e.snap.t.ap > e.pre.ap) { this.bumpAP(); Sfx.sparkle(); }
+        else if (e.snap.t.ap < e.pre.ap && e.fn !== "discardCard") Sfx.spend();
+      }
       if (e.p !== 0) await wait((e.fn === "move" || e.fn === "work" ? 40 : 140) * SPEED);
       if (this.g !== g) return;
     }
+    Sfx.dim = false;
     this.view = null;
     this.playing = false;
     this.render();
@@ -925,12 +944,13 @@ class App {
     this.saveGame();
     this.render();
     Sfx.turn();
+    if (g.charters.some(ch => ch.owner === 0 && g.roundsLeft(ch) <= 1)) setTimeout(() => Sfx.warn(), 550);
   }
 
   // ------------------------------------------------------------ your turn
   mine() { return this.g && !this.g.over && this.g.turn === 0 && !this.view && !this.playing && this.mode !== "ai"; }
   selCards() { const h = this.g.players[0].hand; return [...this.sel].map(id => h.find(c => c.id === id)).filter(Boolean); }
-  allow(kind, info) { if (!this.tut) return true; if (this.tut.allows(kind, info)) return true; this.tut.nudge(); return false; }
+  allow(kind, info) { if (!this.tut) return true; if (this.tut.allows(kind, info)) return true; this.tut.nudge(); Sfx.dud(); return false; }
   bumpAP() { const e = $("me-ap"); e.classList.remove("bump"); void e.offsetWidth; e.classList.add("bump"); }
   // undoable: the move showed you nothing new (no card off the deck, no quest turned over)
   async act(fn, undoable = false) {
@@ -957,6 +977,7 @@ class App {
     this.sel.clear();
     this.clearHint();
     this.log(`<span class="faint">You took that back.</span>`);
+    Sfx.rewind();
     this.render();
   }
 
@@ -968,6 +989,7 @@ class App {
       if (!this.allow("draw", src)) return;
       return this.act(() => { const c = g.draw(0, src); if (c) this.fresh.add(c.id); if (g.t.drawsLeft <= 0) this.mode = "play"; }, src === "discard");
     }
+    if (this.mode === "play" && !g.canBuy(0)) return Sfx.dud();
     if (this.mode === "play" && g.canBuy(0)) {
       if (src === "discard" && !g.discard.length) return;
       if (!this.allow("buy", src)) return;
@@ -981,12 +1003,14 @@ class App {
     this.targeting = null;
     if (this.mode === "trim") {
       this.drops.has(c.id) ? this.drops.delete(c.id) : this.drops.add(c.id);
+      Sfx.tick();
       const need = this.g.players[0].hand.length - this.g.o.handLimit;
       if (this.drops.size >= need && this.onTrim) { const f = this.onTrim; this.onTrim = null; f(); return; }
       return this.render();
     }
     if (this.mode !== "play") return;
     this.sel.has(c.id) ? this.sel.delete(c.id) : this.sel.add(c.id);
+    Sfx.tick();
     this.render();
   }
 
@@ -1026,9 +1050,10 @@ class App {
       if (sp === me.pos || !this.allow("blink-to", sp)) return;
       return this.castAt(sp);
     }
-    if (!this.mine() || this.mode !== "play" || g.t.ap < 1) return;
-    if (g.neighbours(me.pos).includes(sp)) { if (!g.canMove(0, sp) || !this.allow("move", sp)) return; return this.act(() => g.move(0, sp), true); }
-    if (sp !== me.pos || !g.canWork(0)) return;
+    if (!this.mine() || this.mode !== "play") return;
+    if (g.t.ap < 1) return Sfx.dud();
+    if (g.neighbours(me.pos).includes(sp)) { if (!g.canMove(0, sp)) return Sfx.dud(); if (!this.allow("move", sp)) return; return this.act(() => g.move(0, sp), true); }
+    if (sp !== me.pos || !g.canWork(0)) return Sfx.dud();
     if (!this.allow("work", sp)) return;
     if (PRODUCES[sp] >= 0) return this.act(() => g.work(0), true);
     if (sp === TAVERN) return this.askTavern();
@@ -1176,6 +1201,7 @@ class App {
       try { localStorage.removeItem("rv_save"); } catch (e) { /* ignore */ }
     }
     this.counted = true;
+    (g.final(0) === Math.max(...g.players.map((_, p) => g.final(p))) ? Sfx.victory() : Sfx.defeat());
     const rows = g.players.map((pl, p) => {
       const qp = pl.done.reduce((a, q) => a + q.pts, 0) + (pl.bounty || 0), fav = pl.done.filter(q => q.type === pl.character.favour).length * g.o.favourBonus;
       return { p, pl, qp, mp: pl.renown - qp, fav, total: g.final(p) };
@@ -1231,7 +1257,7 @@ class App {
         this.sel.add(a.a[1]);
         text = k === "blink" ? `cast <b>Blink</b> to jump to the <b>${PLACES[arg]}</b>.` : k === "scry" ? "cast <b>Scry</b> for two more cards."
           : k === "recall" ? `cast <b>Recall</b> to take back the <b>${cardName(a.pile[arg])}</b>.` : k === "haggle" ? "cast <b>Haggle</b>, so every vendor charges 1 stamina again."
-          : `cast <b>Renew</b>, so your <b>${g.charters.find(ch => ch.id === arg).def.name}</b> doesn't fade.`;
+          : `cast <b>Renew</b>, so your <b>${g.charters.find(ch => ch.id === arg).def.name}</b> doesn't lapse.`;
         targets = [hand(a.a[1]), "#btn-cast"];
         break;
       }
@@ -1270,6 +1296,7 @@ class App {
         break;
     }
     this.hint = { text: "Hint: " + text };
+    Sfx.ping();
     this.render();
     requestAnimationFrame(() => { for (const s of targets) document.querySelectorAll(s).forEach(el => this.glow(el, "hint-glow", 4600, 5)); });
   }
@@ -1439,6 +1466,9 @@ class App {
       d.onclick = () => this.clickOffer(i);
       O.appendChild(d);
     }
+    const crowded = g.o.crowdLapse && g.charters.length >= g.o.crowdLapse;
+    $("crowd").innerHTML = crowded ? "· crowded" : "";
+    $("crowd").dataset.tip = crowded ? `<b>The town is crowded</b><br>With ${g.o.crowdLapse} or more Charters founded, each lasts ${plural(g.life(), "round")} untended instead of ${g.o.life}.` : "";
     const F = $("founded");
     F.innerHTML = "";
     const dense = g.charters.length > 6;
@@ -1458,7 +1488,7 @@ class App {
       d.dataset.id = ch.id;
       d.style.setProperty("--pc", PCOL[ch.owner]);
       d.innerHTML = `<div class="bar"></div><div class="tname">${ch.def.name}</div><div class="yield">${tok(ch.def.res)}</div>
-        ${fadeRing(left, g.o.life)}
+        ${fadeRing(left, g.life())}
         ${ART.has(CHARKEY[owner]) ? `<div class="owner arms" title="${ch.owner === 0 ? "Yours" : owner}">${arms(owner)}</div>` : `<div class="owner portrait" style="--pc:${PCOL[ch.owner]}" title="${ch.owner === 0 ? "Yours" : owner}">${face(owner)}</div>`}
         <div class="meld"></div>${can ? `<div class="gain">${stGain(ch.owner === 0 ? g.o.ownLayoffAP : g.o.layoffAP)}</div>` : ""}`;
       const M = d.querySelector(".meld");
