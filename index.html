@@ -8,28 +8,36 @@
 <link rel="preload" href="img/map.webp" as="image">
 <link rel="preload" href="img/logo.webp" as="image">
 <link rel="preload" href="img/cardback.webp" as="image">
-<link rel="stylesheet" href="river.css?v=128">
-<link rel="stylesheet" href="icons.css?v=128">
+<link rel="stylesheet" href="river.css?v=200">
+<link rel="stylesheet" href="icons.css?v=200">
 </head>
 <body>
+<div id="backdrop"></div>
 <div id="stage">
   <div id="map"><canvas id="mapfx"></canvas><canvas id="mapfolk"></canvas></div>
   <div id="notice" class="parchment"></div>
+  <div id="proclaim" class="parchment"></div>
+  <div id="yourturn"></div>
   <section id="town"></section>
   <div id="brand"><img src="img/logo-small.webp" alt="Drakeharbour Syndicates"></div>
   <div id="final">Final round</div>
   <div id="mixer" class="parchment hidden"></div>
   <div id="opps"></div>
   <div id="menu">
-    <div class="row"><button class="btn parch small" id="btn-hint" title="What would a strong player do now?">Hint</button><button class="btn parch small" id="btn-rules">Rules</button><button class="btn parch small" id="btn-menu">Menu</button></div>
-    <div class="row"><button class="btn parch small icon" id="btn-fs-down" title="Smaller text">A&minus;</button><button class="btn parch small icon" id="btn-fs-up" title="Bigger text">A+</button><button class="btn parch small icon" id="btn-music"></button><button class="btn parch small icon" id="btn-sound"></button><button class="btn parch small icon" id="btn-full"></button></div>
+    <div class="row icons"><button class="btn parch small icon ingame" id="btn-hint" data-tip="<b>Hint</b><br>What would a strong player do now? (H)"></button><button class="btn parch small icon ingame" id="btn-rules" data-tip="<b>Rules</b><br>How to play, a section at a time"></button><button class="btn parch small icon ingame" id="btn-menu" data-tip="<b>Settings and menu</b><br>Settings, a new game, the tutorial"></button><button class="btn parch small icon" id="btn-sound"></button><button class="btn parch small icon" id="btn-full"></button></div>
   </div>
 
-  <section id="offers" class="leather"><div class="zone-title">Charters<br>on offer<button class="mini" id="btn-reoffer" title="Put these Charters to the bottom of their deck and turn up fresh ones (1 stamina)">Fresh</button></div><div id="offer"></div></section>
+  <section id="offers" class="leather"><div class="zone-title">Charters<br>on offer<button class="mini" id="btn-reoffer" data-tip="<b>Fresh Charters</b><br>Put these to the bottom of their deck and turn up fresh ones, for 1 stamina.">Fresh</button></div><div id="offer"></div></section>
   <section id="charters" class="leather"><div class="zone-title">Founded charters <span id="crowd"></span></div><div id="founded"></div></section>
   <section id="tavern" class="leather"><div class="zone-title">The Tavern <span id="qmore"></span><button class="mini" id="btn-request">Fresh</button></div><div id="qrow"></div><div id="qsealed"></div></section>
-  <section id="chronicle" class="parchment" title="Click to read everything that has happened"><div class="panel-title">Chronicle</div><div id="log"></div></section>
+  <section id="chronicle" class="parchment" data-tip="<b>Chronicle</b><br>Click to read everything that has happened."><div class="panel-title">Chronicle</div><div id="log"></div></section>
 
+  <section id="pilebox" class="leather">
+    <div id="piles">
+      <div class="pile" id="deck"><div class="slot"></div><div class="lbl">Deck</div></div>
+      <div class="pile" id="discard"><div class="slot"></div><div class="lbl">Discard</div></div>
+    </div>
+  </section>
   <section id="board" class="leather">
     <div id="me-char"></div>
     <div id="me-renown"></div>
@@ -37,15 +45,11 @@
     <div id="me-res"></div>
     <div id="me-cap"></div>
     <div id="status"></div>
-    <div id="piles">
-      <div class="pile" id="deck"><div class="slot"></div><div class="lbl">Deck</div></div>
-      <div class="pile" id="discard"><div class="slot"></div><div class="lbl">Discard</div></div>
-    </div>
     <div id="hand"></div>
     <div id="actions">
       <button class="btn" id="btn-cast"><i class="ic ic-cast"></i>Cast</button>
       <button class="btn dark" id="btn-clear">Clear</button>
-      <button class="btn dark" id="btn-undo" title="Take back your last move (Ctrl+Z)">Undo</button>
+      <button class="btn dark" id="btn-undo" data-tip="<b>Undo</b><br>Take back your last move (Ctrl+Z).">Undo</button>
       <span class="spacer"></span>
       <div id="sortbar">SORT <button class="btn dark small" id="sort-suit">Suit</button><button class="btn dark small" id="sort-rank">Rank</button></div>
       <span class="spacer"></span>
@@ -67,12 +71,12 @@
   <div id="overlay" class="hidden"><div id="panel" class="parchment"></div></div>
   <div id="tip"></div>
 </div>
-<script src="river-music.js?v=128"></script>
-<script src="river-core.js?v=128"></script>
-<script src="river-ai.js?v=128"></script>
-<script src="river-tutorial.js?v=128"></script>
-<script src="folk-sheet.js?v=128"></script>
-<script src="river-scenery.js?v=128"></script>
-<script src="river-app.js?v=128"></script>
+<script src="river-music.js?v=200"></script>
+<script src="river-core.js?v=200"></script>
+<script src="river-ai.js?v=200"></script>
+<script src="river-tutorial.js?v=200"></script>
+<script src="folk-sheet.js?v=200"></script>
+<script src="river-scenery.js?v=200"></script>
+<script src="river-app.js?v=200"></script>
 </body>
 </html>

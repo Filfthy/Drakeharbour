@@ -291,10 +291,21 @@ const Scenery = {
     const tick = now => {
       this.raf = requestAnimationFrame(tick);
       if (now - this.last < 1000 / this.FPS - 2 || !this.visible()) return;
+      // a machine that can't keep up: frames keep coming late (not just the odd long pause while the
+      // computer players think), so the map is drawn at half resolution, a quarter of the work
+      const gap = now - this.last;
+      if (gap < 200) this.late = (this.late || 0) * 0.97 + (gap > 50 ? 0.03 : 0);
+      if (this.late > 0.6 && !this.half) this.halve();
       this.last = now;
       this.draw((now - this.t0) / 1000);
     };
     this.raf = requestAnimationFrame(tick);
+  },
+  halve() {
+    this.half = true;
+    this.canvas.width = Math.round(this.MAP[0] / 2);
+    this.canvas.height = Math.round(this.MAP[1] / 2);
+    this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
   },
   stop() {
     if (this.raf) cancelAnimationFrame(this.raf);

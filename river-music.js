@@ -1,5 +1,5 @@
 // river-music.js - bardcore-style tunes written for River, synthesised in the browser:
-// a plucked lute, recorder and crumhorn leads, a hurdy-gurdy drone and a frame drum.
+// a plucked lute, recorder and crumhorn leads, a hurdy-gurdy drone, a tabor (a snared frame drum) and a tambourine.
 
 // Melodies are written as note:length, with lengths in steps (each tune sets how long a step is).
 // Chords are one per bar. Each tune plays A A B B, then again with the leads swapped.
@@ -23,7 +23,27 @@ const MUSIC_TUNES = [
     A: "E5:1 F5:1 E5:1 D5:2 C5:1 | B4:2 C5:1 A4:3 | G4:1 A4:1 B4:1 C5:1 D5:1 E5:1 | G5:2 F5:1 E5:3 | E5:1 F5:1 E5:1 D5:2 C5:1 | B4:2 A4:1 G4:2 F4:1 | F4:1 G4:1 A4:1 C5:2 A4:1 | E4:6",
     Ac: "Em Am C Em Em G F Em",
     B: "B4:1 C5:1 D5:1 E5:2 B4:1 | C5:2 A4:1 B4:3 | A4:1 B4:1 C5:1 D5:2 A4:1 | B4:3 E5:3 | G5:2 F5:1 E5:2 D5:1 | C5:1 D5:1 E5:1 F5:2 E5:1 | D5:1 C5:1 B4:1 A4:2 F4:1 | E4:6",
-    Bc: "Em Am Dm Em C C F Em" }
+    Bc: "Em Am Dm Em C C F Em" },
+  { name: "The Harbour Hornpipe", step: 0.18, bar: 6, feel: "jig", lead: "rec", lead2: "horn", drone: "D", droneV: 0.06,
+    A: "D5:2 F#5:1 A5:2 F#5:1 | G5:2 E5:1 C5:2 E5:1 | D5:2 F#5:1 A5:1 B5:1 A5:1 | G5:3 E5:3 | D5:2 F#5:1 A5:2 F#5:1 | G5:2 B5:1 A5:2 G5:1 | F#5:1 E5:1 D5:1 C5:2 E5:1 | D5:6",
+    Ac: "D C D Em D G C D",
+    B: "A5:2 B5:1 C6:2 B5:1 | A5:2 G5:1 E5:2 G5:1 | A5:2 F#5:1 D5:2 F#5:1 | E5:3 A4:3 | D5:1 E5:1 F#5:1 G5:2 A5:1 | B5:2 A5:1 G5:2 E5:1 | F#5:2 D5:1 E5:2 C5:1 | D5:6",
+    Bc: "Am C D Am D Em C D" },
+  { name: "Pavane of the Lapsed Charter", step: 0.3, bar: 8, feel: "ballad", lead: "rec", lead2: "rec", drone: "D", droneV: 0.035, form: "AABB",
+    A: "D5:3 E5:1 F5:2 A5:2 | G5:2 F5:2 E5:4 | F5:3 G5:1 A5:2 C6:2 | B5:2 A5:2 A5:4 | G5:3 F5:1 E5:2 D5:2 | C5:2 D5:2 E5:2 F5:2 | E5:2 D5:2 C5:2 E5:2 | D5:8",
+    Ac: "Dm C F G Em Am C Dm",
+    B: "A5:3 B5:1 C6:2 A5:2 | G5:2 A5:2 F5:4 | E5:3 F5:1 G5:2 E5:2 | D5:6 E5:2 | F5:3 E5:1 D5:2 C5:2 | D5:2 F5:2 A5:4 | G5:2 F5:2 E5:2 C#5:2 | D5:8",
+    Bc: "Am F C Dm Dm Dm A Dm" },
+  { name: "Branle of the Bellfounders", step: 0.22, bar: 6, feel: "dance3", lead: "horn", lead2: "rec", drone: "G", droneV: 0.06,
+    A: "G4:2 G4:1 A4:1 B4:2 | C5:2 B4:2 A4:2 | B4:2 B4:1 C5:1 D5:2 | E5:4 D5:2 | C5:2 C5:1 B4:1 A4:2 | B4:2 A4:1 G4:1 F#4:2 | G4:2 A4:2 B4:1 A4:1 | G4:6",
+    Ac: "G Am G C Am D G G",
+    B: "D5:2 D5:1 E5:1 F#5:2 | G5:2 F#5:2 E5:2 | D5:2 B4:1 C5:1 D5:2 | A4:4 D5:2 | G5:2 F#5:1 E5:1 D5:2 | C5:2 B4:1 A4:1 B4:2 | A4:2 B4:1 C5:1 A4:2 | G4:6",
+    Bc: "D Em G D G Am D G" },
+  { name: "The Tavern Round", step: 0.17, bar: 6, feel: "jig2", lead: "rec", lead2: "horn", drone: "A", droneV: 0.06,
+    A: "A4:1 C5:1 E5:1 A5:2 E5:1 | G5:2 E5:1 D5:2 B4:1 | C5:1 D5:1 E5:1 F5:2 E5:1 | D5:3 B4:3 | A4:1 C5:1 E5:1 A5:2 G5:1 | F5:2 E5:1 D5:2 C5:1 | B4:1 C5:1 D5:1 E5:2 G#4:1 | A4:6",
+    Ac: "Am G F G Am Dm E Am",
+    B: "E5:2 A5:1 G5:2 E5:1 | F5:2 D5:1 E5:2 C5:1 | D5:2 G5:1 F5:2 D5:1 | E5:3 E4:3 | A4:1 B4:1 C5:1 D5:2 E5:1 | F5:1 E5:1 D5:1 C5:2 A4:1 | B4:2 G#4:1 E4:2 B4:1 | A4:6",
+    Bc: "Am Dm G E Am Dm E Am" }
 ];
 
 // The lute's part for each kind of tune: [step, strings, loudness, strummed]. Strings are
@@ -39,7 +59,7 @@ const MUSIC_DRUM = {
   jig: [[[0, "dum", 0.57], [2, "tek", 0.14], [3, "dum", 0.38], [5, "tek", 0.14]], [[1, "jingle", 0.08], [4, "jingle", 0.08]]],
   jig2: [[[0, "dum", 0.57], [1, "tek", 0.11], [3, "dum", 0.41], [4, "tek", 0.11], [5, "tek", 0.11]], [[2, "jingle", 0.08], [5, "jingle", 0.07]]],
   dance3: [[[0, "dum", 0.57], [2, "tek", 0.14], [4, "tek", 0.14]], [[3, "jingle", 0.08]]],
-  ballad: [[[0, "dum", 0.35], [4, "dum", 0.2]], []]
+  ballad: [[[0, "dum", 0.42], [4, "dum", 0.28]], [[6, "tek", 0.08]]]
 };
 
 const MUSIC_NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
@@ -227,32 +247,46 @@ class MusicBand {
     f.connect(g); g.connect(this.pan.drone);
   }
 
+  // A medieval tabor, the drum of pipe-and-tabor: a skin with a ringing overtone, the slap of the stick
+  // and the buzz of its gut snare, so it carries on small speakers too; a rim stroke; the tambourine.
   drum(kind, t, v) {
-    const c = this.ctx, n = c.createBufferSource(), ng = c.createGain();
-    n.buffer = this.noise;
-    if (kind === "dum") {
+    const c = this.ctx;
+    v *= 1.8;   // the drum sits a little forward in the band, as it does in a dance
+    const noise = (type, f, q, peak, dur, at = t) => {
+      const n = c.createBufferSource(), g = c.createGain();
+      n.buffer = this.noise;
+      g.gain.setValueAtTime(0.0001, at);
+      g.gain.exponentialRampToValueAtTime(peak, at + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+      this.chain(n, this.filter(type, f, q), g, this.pan.drum);
+      n.start(at, Math.random()); n.stop(at + dur + 0.02);
+    };
+    const tone = (f0, f1, peak, dur) => {
       const o = c.createOscillator(), g = c.createGain();
-      o.frequency.setValueAtTime(118, t);
-      o.frequency.exponentialRampToValueAtTime(52, t + 0.18);
+      o.frequency.setValueAtTime(f0, t);
+      o.frequency.exponentialRampToValueAtTime(f1, t + dur * 0.6);
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(v, t + 0.006);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
+      g.gain.exponentialRampToValueAtTime(peak, t + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       o.connect(g); g.connect(this.pan.drum);
-      o.start(t); o.stop(t + 0.4);
-      ng.gain.setValueAtTime(v * 0.45, t);
-      ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
-      this.chain(n, this.filter("lowpass", 900, 0.7), ng, this.pan.drum);
-      n.start(t, Math.random()); n.stop(t + 0.08);
+      o.start(t); o.stop(t + dur + 0.02);
+    };
+    if (kind === "dum") {
+      tone(150, 88, v * 1.1, 0.32);                   // the skin
+      tone(245, 190, v * 0.9, 0.2);                   // its ringing overtone
+      noise("bandpass", 800, 1.1, v * 2.2, 0.08);     // the stick's slap
+      noise("bandpass", 3200, 0.8, v * 0.75, 0.16);   // the snare's buzz
     } else if (kind === "tek") {
-      ng.gain.setValueAtTime(v, t);
-      ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
-      this.chain(n, this.filter("bandpass", 2600, 1.2), ng, this.pan.drum);
-      n.start(t, Math.random()); n.stop(t + 0.08);
+      noise("bandpass", 2400, 1.4, v * 3.6, 0.05);    // a stroke on the rim
+      tone(1700, 1500, v * 0.35, 0.04);
+      noise("bandpass", 3600, 0.8, v * 1.2, 0.09);
     } else {
       // a shake of the tambourine's jingles
+      const n = c.createBufferSource(), ng = c.createGain();
+      n.buffer = this.noise;
       ng.gain.setValueAtTime(0.0001, t);
       for (const [dt, a] of [[0, 1], [0.03, 0.6], [0.06, 0.35]]) {
-        ng.gain.setValueAtTime(v * a, t + dt);
+        ng.gain.setValueAtTime(v * a * 1.3, t + dt);
         ng.gain.exponentialRampToValueAtTime(0.0001, t + dt + 0.028);
       }
       this.chain(n, this.filter("highpass", 6500, 0.7), ng, this.pan.drum);
@@ -541,9 +575,13 @@ const Sfx = {
   // something lost to a limit: a falling note
   drop() { this.play("drop", 300, (c, t) => this.osc(c, t, "sine", 420, 180, 0.32, 0.05)); },
   // ---------------------------------------------------------------- the table
+  // a button pressed: a soft tap on parchment
+  tap() { this.play("tap", 40, (c, t) => { this.burst(c, t, 0.035, "bandpass", 1500, 1100, 1.1, 0.11); this.osc(c, t, "sine", 520, 420, 0.04, 0.022); }); },
   tick() { this.play("tick", 35, (c, t) => { this.osc(c, t, "sine", 2300, 2300, 0.03, 0.03); this.burst(c, t, 0.012, "bandpass", 5000, 5000, 1, 0.035); }); },
   // a click that can't do anything just now: a soft dull tap
   dud() { this.play("dud", 160, (c, t) => { this.osc(c, t, "sine", 150, 105, 0.09, 0.06); this.burst(c, t, 0.05, "lowpass", 450, 300, 0.7, 0.03); }); },
+  // a perk at work: a soft high glint
+  perk() { this.play("perk", 250, (c, t) => { this.osc(c, t, "sine", 1760, 1760, 0.35, 0.014); this.osc(c, t + 0.06, "sine", 2637, 2637, 0.45, 0.009); }); },
   ping() { this.play("ping", 300, (c, t) => { this.osc(c, t, "sine", 1319, 1319, 0.6, 0.03); this.osc(c, t, "sine", 2637, 2637, 0.4, 0.012); }); },
   rewind() { this.play("rewind", 150, (c, t) => { this.burst(c, t, 0.2, "bandpass", 3200, 900, 1.3, 0.11); this.osc(c, t, "sine", 900, 480, 0.16, 0.03); }); },
   // ---------------------------------------------------------------- the end of the game

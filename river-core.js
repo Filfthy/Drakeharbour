@@ -91,38 +91,126 @@ const CHARTERS = [
   { name: "House of Healing", res: FAITH, shape: "run" },
   { name: "University", res: LORE, shape: "run4" },
   { name: "Scriveners' Guild", res: LORE, shape: "set" },
-  { name: "Star Chamber", res: LORE, shape: "high" }
+  { name: "Star Chamber", res: LORE, shape: "high" },
+  { name: "Vintners' Hall", res: GOLD, shape: "run" },
+  { name: "Exchequer", res: GOLD, shape: "low" },
+  { name: "Smiths' Hall", res: STEEL, shape: "set" },
+  { name: "Bowyers' Guild", res: STEEL, shape: "high" },
+  { name: "Friars' Lodge", res: FAITH, shape: "set4" },
+  { name: "Almoners' House", res: FAITH, shape: "long" },
+  { name: "Cartographers", res: LORE, shape: "run" },
+  { name: "Apothecaries", res: LORE, shape: "low" }
 ];
+const CHARTERS_PER_RES = 3;   // each game deals this many of each resource's Charters, so twelve in all (o.charterDeal)
 
-const Q = (name, type, need, pts) => ({ name, type, need: [need.G || 0, need.S || 0, need.F || 0, need.L || 0], pts });
+const Q = (name, type, need, pts, flavour) => ({ name, type, need: [need.G || 0, need.S || 0, need.F || 0, need.L || 0], pts, flavour });
+// The open quests: ten of each kind. Renown by size: 3 resources 6, 4 resources 8 (9 for Exploration's
+// four kinds), 5 resources 10 (11), 6 resources 13, 7 resources 15.
 const QUESTS = [
-  Q("Clear the sewers", 0, { S: 2, G: 1 }, 6), Q("Escort the caravan", 0, { S: 2, F: 1 }, 6), Q("Hunt the wyvern", 0, { S: 3, L: 1 }, 8),
-  Q("Defend the bridge", 0, { S: 2, G: 2 }, 8), Q("Storm the bandit keep", 0, { S: 3, G: 1, F: 1 }, 10), Q("Slay the dragon", 0, { S: 4, L: 1, F: 1 }, 13),
-  Q("Bribe the magistrate", 1, { G: 2, L: 1 }, 6), Q("Host a banquet", 1, { G: 2, F: 1 }, 6), Q("Negotiate a truce", 1, { G: 3, S: 1 }, 8),
-  Q("Charter the fleet", 1, { G: 2, S: 2 }, 8), Q("Arrange a royal marriage", 1, { G: 3, F: 1, L: 1 }, 10), Q("Crown the prince", 1, { G: 4, F: 1, S: 1 }, 13),
-  Q("Bless the harvest", 2, { F: 2, G: 1 }, 6), Q("Tend the sick", 2, { F: 2, L: 1 }, 6), Q("Consecrate the shrine", 2, { F: 3, G: 1 }, 8),
-  Q("Exorcise the crypt", 2, { F: 2, S: 2 }, 8), Q("Lead the pilgrimage", 2, { F: 3, S: 1, G: 1 }, 10), Q("Raise the cathedral", 2, { F: 4, G: 1, L: 1 }, 13),
-  Q("Copy the codex", 3, { L: 2, G: 1 }, 6), Q("Chart the stars", 3, { L: 2, F: 1 }, 6), Q("Decipher the runes", 3, { L: 3, S: 1 }, 8),
-  Q("Brew an elixir", 3, { L: 2, F: 2 }, 8), Q("Found an academy", 3, { L: 3, G: 1, F: 1 }, 10), Q("Bind the demon", 3, { L: 4, S: 1, F: 1 }, 13),
-  Q("Map the marshes", 4, { G: 1, S: 1, L: 1 }, 6), Q("Cross the mountains", 4, { S: 1, F: 1, L: 1 }, 6), Q("Sail the Dragon Sea", 4, { G: 1, S: 1, F: 1, L: 1 }, 9),
-  Q("Find the lost city", 4, { G: 2, S: 1, F: 1, L: 1 }, 11), Q("Climb the Moon Peak", 4, { G: 1, S: 2, F: 1, L: 1 }, 11), Q("Reach the world's edge", 4, { G: 2, S: 2, F: 1, L: 2 }, 15)
+  // Adventure
+  Q("Clear the sewers", 0, { S: 2, G: 1 }, 6, "Something large has been eating the rats. The rats were the good news."),
+  Q("Escort the caravan", 0, { S: 2, F: 1 }, 6, "Forty wagons of salt, one road, and a great many hungry bandits."),
+  Q("Drive off the wolves", 0, { S: 2, L: 1 }, 6, "The shepherds of the high meadows want their flocks back by spring."),
+  Q("Hunt the wyvern", 0, { S: 3, L: 1 }, 8, "It took three sheep and a bishop's hat. The bishop wants the hat back."),
+  Q("Guard the toll road", 0, { S: 2, G: 1, F: 1 }, 8, "Merchants pay the toll gladly, as long as they arrive alive."),
+  Q("Defend the bridge", 0, { S: 2, G: 2 }, 9, "The old bridge is the only way into town. Keep it that way."),
+  Q("Break the siege of Harrowford", 0, { S: 3, G: 1, L: 1 }, 10, "Harrowford has been eating its boots for a week. Hurry."),
+  Q("Storm the bandit keep", 0, { S: 3, G: 1, F: 1 }, 11, "The Red Hand have held the keep for a year. Their lease is up."),
+  Q("Hold the northern pass", 0, { S: 4, G: 1, F: 1 }, 13, "The raiders come every winter. This winter, the pass says no."),
+  Q("Slay the dragon", 0, { S: 4, L: 1, F: 1 }, 13, "Every guild in town has a plan. None of them involves going themselves."),
+  // Diplomacy
+  Q("Bribe the magistrate", 1, { G: 2, L: 1 }, 6, "Justice is blind, but she hears the clink of gold very well."),
+  Q("Host a banquet", 1, { G: 2, F: 1 }, 6, "Seat the Baron far from the Bishop, and keep the wine flowing."),
+  Q("Settle the guild quarrel", 1, { G: 2, S: 1 }, 6, "The bakers and the brewers both claim Tuesday. Someone must decide."),
+  Q("Negotiate a truce", 1, { G: 3, S: 1 }, 8, "The fishmongers and the tanners have been at war since Michaelmas."),
+  Q("Charter the fleet", 1, { G: 2, S: 2 }, 8, "Twelve ships, twelve captains, and twelve opinions about the tide."),
+  Q("Fete the visiting envoy", 1, { G: 2, F: 1, L: 1 }, 8, "The envoy likes music, venison and being agreed with."),
+  Q("Arrange a royal marriage", 1, { G: 3, F: 1, L: 1 }, 10, "The prince is willing. The princess has questions."),
+  Q("Broker the river treaty", 1, { G: 3, S: 1, L: 1 }, 10, "Three towns, one river, and centuries of argument about the fish."),
+  Q("Crown the prince", 1, { G: 4, F: 1, S: 1 }, 13, "A crown, a cathedral and a great deal of polishing."),
+  Q("Win the Duke's favour", 1, { G: 4, S: 1, L: 1 }, 13, "The Duke can be bought. The trick is finding the price."),
+  // Devotion
+  Q("Bless the harvest", 2, { F: 2, G: 1 }, 6, "The barley is golden and the priest is late. Again."),
+  Q("Tend the sick", 2, { F: 2, L: 1 }, 6, "Fever in the Lower Ward. Bring candles, broth and patience."),
+  Q("Ring the bells for the dead", 2, { F: 2, S: 1 }, 6, "The great bell has been silent since the fever. Let it speak."),
+  Q("Consecrate the shrine", 2, { F: 3, G: 1 }, 8, "The new shrine needs a blessing, a bell and a better roof."),
+  Q("Exorcise the crypt", 2, { F: 2, S: 2 }, 8, "Something in the crypt keeps moving the coffins. It was not the sexton."),
+  Q("Feed the poor at Candlemas", 2, { F: 2, G: 1, L: 1 }, 8, "Bread for the hungry, and a candle for every window."),
+  Q("Lead the pilgrimage", 2, { F: 3, S: 1, G: 1 }, 10, "Two hundred pilgrims, one saint's toe, and the long road to Saint Calder."),
+  Q("Lay the saint to rest", 2, { F: 3, G: 1, L: 1 }, 10, "Saint Amaline has been moved four times. She deserves some peace."),
+  Q("Raise the cathedral", 2, { F: 4, G: 1, L: 1 }, 13, "The masons say forty years. The Bishop says by Easter."),
+  Q("Rebuild the burnt abbey", 2, { F: 4, S: 1, G: 1 }, 13, "The nuns saved the bees from the fire. Now for the walls."),
+  // Scholarship
+  Q("Copy the codex", 3, { L: 2, G: 1 }, 6, "Three hundred pages, one candle, and a monk who hums."),
+  Q("Chart the stars", 3, { L: 2, F: 1 }, 6, "The astrologers cannot agree about the comet. Settle it."),
+  Q("Translate the old charters", 3, { L: 2, S: 1 }, 6, "Half the town's deeds are in a language nobody speaks any more."),
+  Q("Decipher the runes", 3, { L: 3, S: 1 }, 8, "The runes on the old gate say either 'Welcome' or 'Beware'."),
+  Q("Brew an elixir", 3, { L: 2, F: 2 }, 8, "Mostly harmless, says the alchemist, from a safe distance."),
+  Q("Catalogue the archive", 3, { L: 2, G: 1, F: 1 }, 8, "Nobody knows what is in the Archive. Not even the Archive."),
+  Q("Found an academy", 3, { L: 3, G: 1, F: 1 }, 10, "A school for scribes, so the town can read its own contracts."),
+  Q("Measure the eclipse", 3, { L: 3, F: 1, G: 1 }, 10, "Next Tuesday the sun goes out at noon. Be ready with quills."),
+  Q("Bind the demon", 3, { L: 4, S: 1, F: 1 }, 13, "The Archive's oldest book has started getting out at night."),
+  Q("Write the great chronicle", 3, { L: 4, G: 1, F: 1 }, 13, "Every war, wedding and plague since the founding, in one book."),
+  // Exploration
+  Q("Map the marshes", 4, { G: 1, S: 1, L: 1 }, 6, "Every map of the Mere ends in the same words: here be bog."),
+  Q("Cross the mountains", 4, { S: 1, F: 1, L: 1 }, 6, "The pass opens for a month in summer. This is that month."),
+  Q("Sound the river's depths", 4, { G: 1, S: 1, F: 1 }, 6, "The barges keep running aground. Somebody must find the channel."),
+  Q("Sail the Dragon Sea", 4, { G: 1, S: 1, F: 1, L: 1 }, 9, "Nobody has crossed it and come back. Nobody has tried with a good ship."),
+  Q("Find the river's source", 4, { G: 1, S: 1, F: 1, L: 1 }, 9, "Every river starts somewhere. This one starts somewhere odd."),
+  Q("Find the lost city", 4, { G: 2, S: 1, F: 1, L: 1 }, 11, "A drowned city of gold, says the fisherman. He says a lot of things."),
+  Q("Climb the Moon Peak", 4, { G: 1, S: 2, F: 1, L: 1 }, 11, "Bring rope, a flag and someone who likes heights."),
+  Q("Chart the northern isles", 4, { G: 1, S: 2, L: 2 }, 11, "Seven islands on the old map, eight in the bay. Find the extra one."),
+  Q("Cross the Ashen Waste", 4, { G: 2, S: 1, F: 2, L: 1 }, 13, "Nothing grows there and nothing comes back. Go and see why."),
+  Q("Reach the world's edge", 4, { G: 2, S: 2, F: 1, L: 2 }, 15, "Either the world is round or it has an edge. Find out which.")
 ];
 // Sealed commissions: taken unseen from the Tavern, and worth about a quarter more than an open quest.
 const SEALED = [
-  Q("Smuggle silk past the toll", 1, { G: 2, S: 1 }, 8), Q("Steal the bishop's ledger", 3, { L: 2, F: 1 }, 8),
-  Q("Rescue the hostage", 0, { S: 2, G: 1, F: 1 }, 10), Q("Bury the scandal", 1, { G: 3, L: 1 }, 10),
-  Q("Forge the royal seal", 3, { L: 2, S: 1, G: 1 }, 10), Q("Break the witch's curse", 2, { F: 3, L: 1 }, 10),
-  Q("Hunt the grave-robbers", 0, { S: 3, F: 1, L: 1 }, 13), Q("Ransom the merchant prince", 1, { G: 3, S: 1, F: 1 }, 13),
-  Q("Sanctify the haunted mill", 2, { F: 3, S: 1, G: 1 }, 13), Q("Steal a dragon's egg", 4, { G: 1, S: 2, F: 1, L: 1 }, 13),
-  Q("Unmask the spymaster", 3, { L: 3, G: 2, F: 1 }, 16), Q("Raise the drowned bell", 4, { G: 2, S: 2, F: 1, L: 1 }, 16)
+  Q("Smuggle silk past the toll", 1, { G: 2, S: 1 }, 8, "The tollmen count the bales. Make sure they count wrong."),
+  Q("Steal the bishop's ledger", 3, { L: 2, F: 1 }, 8, "The Bishop keeps two ledgers. We want the honest one."),
+  Q("Steal back the relic", 2, { F: 2, S: 1 }, 8, "It was stolen from us. Taking it back is hardly stealing."),
+  Q("Rescue the hostage", 0, { S: 2, G: 1, F: 1 }, 10, "The miller's daughter, the river pirates, and a ransom nobody can pay."),
+  Q("Bury the scandal", 1, { G: 3, L: 1 }, 10, "A letter, a lord, and a lady who is not his wife."),
+  Q("Forge the royal seal", 3, { L: 2, S: 1, G: 1 }, 10, "A seal that opens every door. Use it once, then melt it down."),
+  Q("Break the witch's curse", 2, { F: 3, L: 1 }, 10, "The mayor has been croaking since Thursday. Quite literally."),
+  Q("Spirit away the heir", 1, { G: 2, S: 1, L: 1 }, 10, "The child must be gone by dawn, and nobody may know how."),
+  Q("Ambush the smugglers", 0, { S: 2, G: 1, L: 1 }, 10, "They land at Black Cove at the new moon. So will you."),
+  Q("Decode the Velmar cipher", 3, { L: 3, G: 1 }, 10, "A letter in cipher, found on a dead courier. Someone wants it read."),
+  Q("Hunt the grave-robbers", 0, { S: 3, F: 1, L: 1 }, 13, "Someone is digging up the old kings. Find out what they are after."),
+  Q("Ransom the merchant prince", 1, { G: 3, S: 1, F: 1 }, 13, "He is worth a fortune. His family would like him back for less."),
+  Q("Sanctify the haunted mill", 2, { F: 3, S: 1, G: 1 }, 13, "The mill grinds by itself at midnight, and the flour comes out grey."),
+  Q("Silence the false prophet", 2, { F: 2, L: 2, S: 1 }, 13, "He preaches doom in the market square. Trade is suffering."),
+  Q("Steal a dragon's egg", 4, { G: 1, S: 2, F: 1, L: 1 }, 13, "It is warm, it is heavy, and its mother is not far away."),
+  Q("Map the hidden tunnels", 4, { G: 1, S: 2, F: 1, L: 1 }, 13, "Beneath the town there is another town. Map it, quietly."),
+  Q("Unmask the spymaster", 3, { L: 3, G: 2, F: 1 }, 16, "Someone in the guildhall sells every secret twice."),
+  Q("Raise the drowned bell", 4, { G: 2, S: 2, F: 1, L: 1 }, 16, "On still nights you can hear it ring beneath the harbour.")
 ];
 // Sagas: three quests in a row. Part I is an open quest; completing a part hands you the next,
 // worth more than an ordinary quest of its size, but of a different type.
 const SAGAS = [
-  { name: "The Sunken Crown", parts: [Q("Chart the wreck", 4, { G: 1, S: 1, L: 1 }, 6), Q("Raise the hull", 0, { S: 3, G: 1 }, 12), Q("Return the crown", 1, { G: 3, F: 1, L: 1 }, 16)] },
-  { name: "The Heretic's Codex", parts: [Q("Find the forbidden book", 3, { L: 2, G: 1 }, 6), Q("Hide it from the Inquisition", 1, { G: 2, F: 1, L: 1 }, 12), Q("Purge its heresy", 2, { F: 3, L: 1, S: 1 }, 16)] },
-  { name: "The Wyrm of the Moon Peak", parts: [Q("Track the wyrm", 4, { S: 1, F: 1, L: 1 }, 6), Q("Bless the spears", 2, { F: 2, S: 2 }, 12), Q("Slay the wyrm", 0, { S: 3, G: 1, F: 1 }, 16)] },
-  { name: "The Pretender's Gambit", parts: [Q("Hear the rumour", 1, { G: 2, L: 1 }, 6), Q("Win the archbishop", 2, { F: 2, G: 2 }, 12), Q("Crown the true heir", 1, { G: 3, S: 1, L: 1 }, 16)] }
+  { name: "The Sunken Crown", parts: [
+    Q("Chart the wreck", 4, { G: 1, S: 1, L: 1 }, 6, "Divers say King Aldous's crown lies in the wreck off Gull Point."),
+    Q("Raise the hull", 0, { S: 3, G: 1 }, 12, "Chains, winches and a hundred strong backs."),
+    Q("Return the crown", 1, { G: 3, F: 1, L: 1 }, 16, "Three claimants and one crown. Choose wisely.")] },
+  { name: "The Heretic's Codex", parts: [
+    Q("Find the forbidden book", 3, { L: 2, G: 1 }, 6, "A book the Church burned twice survives in a private library."),
+    Q("Hide it from the Inquisition", 1, { G: 2, F: 1, L: 1 }, 12, "The Inquisitors arrive on Friday. They are very thorough."),
+    Q("Purge its heresy", 2, { F: 3, L: 1, S: 1 }, 16, "Read it once, then burn it properly this time.")] },
+  { name: "The Wyrm of the Moon Peak", parts: [
+    Q("Track the wyrm", 4, { S: 1, F: 1, L: 1 }, 6, "Scorched pines, melted snow, and tracks the size of carts."),
+    Q("Bless the spears", 2, { F: 2, S: 2 }, 12, "Steel alone will not pierce its hide. Faith might."),
+    Q("Slay the wyrm", 0, { S: 3, G: 1, F: 1 }, 16, "Songs will be sung. Try to be alive to hear them.")] },
+  { name: "The Pretender's Gambit", parts: [
+    Q("Hear the rumour", 1, { G: 2, L: 1 }, 6, "A stranger claims to be the lost prince. He has the royal nose."),
+    Q("Win the archbishop", 2, { F: 2, G: 2 }, 12, "Whoever the Church crowns is king, and the Church has expenses."),
+    Q("Unseat the pretender", 0, { S: 3, G: 1, L: 1 }, 16, "The nose was false. His army is not.")] },
+  { name: "The Drowned Library", parts: [
+    Q("Read the tide tables", 3, { L: 2, G: 1 }, 6, "The library sank in a single night. The low tides uncover it twice a year."),
+    Q("Dive the sunken stacks", 4, { G: 1, S: 1, F: 1, L: 1 }, 12, "The books are still there, sealed in wax by careful librarians."),
+    Q("Bless the saved tomes", 2, { F: 3, L: 1, G: 1 }, 16, "Some of the books are holy. Some are not. Sort them carefully.")] },
+  { name: "The Iron Tournament", parts: [
+    Q("Study the champion's form", 3, { L: 2, S: 1 }, 6, "The champion has never been unhorsed. Watch how he rides."),
+    Q("Win the melee", 0, { S: 3, G: 1 }, 12, "Fifty knights, one field, and no rules worth mentioning."),
+    Q("Claim the laurel crown", 1, { G: 3, S: 1, F: 1 }, 16, "Winning was the easy part. Now charm the Queen of the Tournament.")] }
 ];
 const sagaPart = (s, k) => Object.assign({ id: 100 + 3 * s + k, saga: s, part: k }, SAGAS[s].parts[k]);
 // The open quests: the ordinary ones and the first part of each saga.
@@ -131,12 +219,38 @@ function questDeck(o) {
 }
 
 const CHARACTERS = [
-  { name: "Ser Aldric", title: "Knight of the Bridge", favour: 0 },
-  { name: "Lady Velia", title: "Envoy of the Crown", favour: 1 },
-  { name: "Brother Anselm", title: "Keeper of the Shrine", favour: 2 },
-  { name: "Magister Orrin", title: "Master of the Archive", favour: 3 },
-  { name: "Kestra", title: "Far-Wanderer", favour: 4 }
+  { name: "Sir Aldric", title: "Knight of the Bridge", favour: 0, perk: "forge" },
+  { name: "Lady Velia", title: "Envoy of the Crown", favour: 1, perk: "tongue" },
+  { name: "Brother Anselm", title: "Keeper of the Shrine", favour: 2, perk: "tithe" },
+  { name: "Magister Orrin", title: "Master of the Archive", favour: 3, perk: "grimoire" },
+  { name: "Kestra", title: "Far-Wanderer", favour: 4, perk: "shortcut" }
 ];
+// Each character's own advantage. {they}/{their} read "you"/"your" for you, and "they"/"their" for others.
+const PERKS = {
+  forge: { name: "Sworn to Steel", text: "The first time {they} work the Forge each turn, it gives 1 more Steel." },
+  tongue: { name: "Silver Tongue", text: "{Their} first trade at the Harbour each turn gives 2 for 1." },
+  tithe: { name: "Tithe", text: "When another player lays off on one of {their} Charters, {they} get 2 of its resource instead of 1." },
+  grimoire: { name: "Grimoire", text: "{They} may cast two spells a turn." },
+  shortcut: { name: "Shortcuts", text: "{Their} steps into the Square cost no stamina, so every place is a single stamina away." }
+};
+
+// Personal quests: each character holds their own from the start, outside the quest limit.
+// Completing it empowers the character's perk for the rest of the game.
+const PERSONAL = {
+  forge: Q("Rebuild the old bridge", 0, { S: 3, G: 1, F: 1 }, 6, "The bridge that gave Sir Aldric his title is sliding into the river. Not on his watch."),
+  tongue: Q("Win the royal warrant", 1, { G: 3, L: 2, F: 1 }, 6, "A warrant from the Crown opens every door in Drakeharbour, and most of the purses."),
+  tithe: Q("Raise the bell tower", 2, { F: 3, S: 2, G: 1 }, 5, "A shrine without a bell is a shrine nobody hears."),
+  grimoire: Q("Copy the old grimoire", 3, { L: 3, F: 2, G: 1 }, 5, "The only copy is falling to dust. Every word must be saved, even the dangerous ones."),
+  shortcut: Q("Walk the old roads", 4, { G: 1, S: 1, F: 1, L: 2 }, 6, "Before the kings there were roads. Kestra means to learn where they all lead.")
+};
+// A perk grown stronger, once its character has completed their personal quest.
+const EMPOWERED = {
+  forge: { name: "Master-Smith", text: "Every time {they} work the Forge, it gives 1 more Steel, and its price never rises for {them}." },
+  tongue: { name: "Golden Tongue", text: "Every trade {they} make at the Harbour gives 2 for 1." },
+  tithe: { name: "Great Tithe", text: "{Their} own lay-offs on {their} Charters pay {them} 1 of its resource too." },
+  grimoire: { name: "Spellbound", text: "The first spell {they} cast each turn draws {them} a card, while {they} hold fewer than 6." },
+  shortcut: { name: "Wayfinder", text: "{Their} first walk each turn costs no stamina." }
+};
 
 const RV_DEFAULTS = {
   players: 3, ranks: 8, handStart: 8, draws: 2, display: 4,
@@ -152,6 +266,14 @@ const RV_DEFAULTS = {
   questCards: true,  // completing a quest draws cards: 1 for a small one, 2 for a middling one, 3 for a big one
   refill: 0,         // at the start of your turn, a hand smaller than this is topped up from the deck, before the draws
   crowdLapse: 8,     // with this many Charters founded or more, they last a round less untended (0: never)
+  questCardCap: 6,   // the cards a quest draws stop when your hand reaches this many (0: no limit)
+  perks: true,       // each character has an advantage of their own (PERKS)
+  personal: true,    // and a personal quest, which empowers it (PERSONAL, EMPOWERED)
+  you: null,         // the character for seat 0, by name (null: dealt at random)
+  underdogAP: 0,     // stamina added to the turn of whoever has the least renown
+  underdog: false,   // Underdog's luck: whoever is alone in last place draws a card at the start of their turn (from round 2),
+                     // and their quests score up to 2 more renown, never taking them past the leader (closer finishes: sims 30% to 48%)
+  rentCap: 0,        // the most rent your Charters pay you in a turn (0: no limit)
   setSuits: "found", // "distinct": a set's cards must all be different suits (so a set holds at most four);
                      // "found": a new set needs different suits, but any card of its rank can be laid off on it
   runAP: 0,          // extra AP for each card of a run, when it founds a Charter
@@ -167,6 +289,11 @@ const RV_DEFAULTS = {
   events: true,     // a town event each round
   handLimit: 9, resCap: 10, target: 100, maxRounds: 40
 };
+
+// Four players draw harder on the deck and found more Charters: a third copy of each spell keeps the deck from
+// running dry (Charters dissolved to refill it: 4.3 a game to 2.0), and four Charters of each resource keep the
+// offer full (short on 19% of turns to none). Charters on the table at once are unchanged.
+const FOUR_PLAYERS = { charterDeal: 4, spells: { blink: 3, glamour: 3, scry: 3, recall: 3, haggle: 3, renew: 3 } };
 
 function shuffle(a, rnd = Math.random) {
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; }
@@ -239,7 +366,7 @@ function fits(card, ch) {
 }
 
 class RiverGame {
-  constructor(opts = {}) { this.o = Object.assign({}, RV_DEFAULTS, opts); deckShape(this.o); }
+  constructor(opts = {}) { this.o = Object.assign({}, RV_DEFAULTS, (opts.players || RV_DEFAULTS.players) >= 4 ? FOUR_PLAYERS : {}, opts); deckShape(this.o); }
 
   setup(rnd = Math.random) {
     const o = this.o;
@@ -251,7 +378,10 @@ class RiverGame {
     for (const [k, n] of Object.entries(o.spells || {})) for (let i = 0; i < n; i++) cards.push({ id: id++, s: -1, r: 0, spell: k });
     this.deck = shuffle(cards, rnd);
     this.discard = [this.deck.pop()];
-    this.charterDeck = shuffle(CHARTERS.map((c, i) => Object.assign({ cid: i }, c)), rnd);
+    // twelve of the twenty Charters, three for each resource, so each game's guilds differ
+    const pool = shuffle(CHARTERS.map((c, i) => Object.assign({ cid: i }, c)), rnd);
+    this.charterDeck = [0, 1, 2, 3].flatMap(r => pool.filter(c => c.res === r).slice(0, o.charterDeal || CHARTERS_PER_RES));
+    shuffle(this.charterDeck, rnd);
     this.display = this.charterDeck.splice(0, o.display);
     this.charters = [];
     this.nextCharter = 0;
@@ -261,12 +391,14 @@ class RiverGame {
     this.event = null;
     this.nextEvent();
     const chars = shuffle(CHARACTERS.slice(), rnd);
+    if (o.you) { const i = chars.findIndex(c => c.name === o.you); if (i > 0) chars.unshift(chars.splice(i, 1)[0]); }
     this.players = [];
     for (let p = 0; p < o.players; p++) {
       const character = chars[p % chars.length], quests = [];
       if (o.favStart) { const i = this.qdeck.findIndex(q => q.type === character.favour && q.saga == null); if (i >= 0) quests.push(this.qdeck.splice(i, 1)[0]); }
       while (quests.length < o.startQuests) quests.push(this.qdeck.pop());
-      this.players.push({ pos: TAVERN, hand: this.deck.splice(0, o.handStart), res: [0, 0, 0, 0], quests, done: [], renown: 0, bounty: 0, character });
+      const personal = o.perks && o.personal && PERSONAL[character.perk] ? Object.assign({ id: 300 + p, personal: true }, PERSONAL[character.perk]) : null;
+      this.players.push({ pos: TAVERN, hand: this.deck.splice(0, o.handStart), res: [0, 0, 0, 0], quests, done: [], renown: 0, bounty: 0, character, personal, empowered: false });
     }
     this.qrow = this.qdeck.splice(0, o.qrowSize);
     this.turn = 0;
@@ -282,6 +414,14 @@ class RiverGame {
   }
 
   pl(p) { return this.players[p]; }
+  // A player's perk (null when perks are off, or for a character from an older save).
+  perkOf(p) { return this.o.perks ? this.pl(p).character.perk || null : null; }
+  // The one-a-turn bonuses a perk gives, fresh at the start of each turn.
+  perkFlags(p) { const k = this.perkOf(p); return { forgeBonus: k === "forge", tradeBonus: k === "tongue", freeStep: this.power(p, "shortcut") }; }
+  // Has this player's perk been empowered (by their personal quest)? With k, is it this perk?
+  power(p, k) { const pl = this.pl(p); return !!(this.o.perks && pl.empowered && (k == null || pl.character.perk === k)); }
+  spellLimit(p) { return this.perkOf(p) === "grimoire" ? 2 : 1; }
+  noteSpell(p) { this.t.spells = (this.t.spells || 0) + 1; this.t.spellUsed = this.t.spells >= this.spellLimit(p); }
 
   // The round's town event: the next from its deck, reshuffled when it runs out.
   nextEvent() {
@@ -292,7 +432,10 @@ class RiverGame {
   }
   ev(key) { return !!this.event && this.event.key === key; }
   // What working a place yields this round.
-  yieldAt(sp) { return this.o.workYield + (this.event && this.event.place === sp && PRODUCES[sp] >= 0 ? 1 : 0); }
+  yieldAt(sp, p) {
+    return this.o.workYield + (this.event && this.event.place === sp && PRODUCES[sp] >= 0 ? 1 : 0)
+      + (p != null && sp === FORGE && (this.power(p, "forge") || (p === this.turn && this.t && this.t.forgeBonus)) ? 1 : 0);
+  }
 
   // The top card of the deck. When the deck runs out the discard pile is shuffled to make a new one;
   // if both have run out, the Charter left untouched longest fades at once to refill it.
@@ -337,12 +480,26 @@ class RiverGame {
     this.refillDisplay();
     // rent
     this.lastRent = [0, 0, 0, 0];
-    for (const ch of this.charters) if (ch.owner === p) { pl.res[ch.def.res] += o.rent; this.lastRent[ch.def.res] += o.rent; if (this.stats) this.stats.fromRent += o.rent; }
-    this.t = { drawsLeft: o.draws, ap: o.freeAP + (this.ev("progress") ? 1 : 0), spellUsed: false, buys: 0, bought: {}, discarded: false, handed: 0 };
+    let paid = 0;
+    for (const ch of this.charters) {
+      if (ch.owner !== p || (o.rentCap && paid >= o.rentCap)) continue;
+      pl.res[ch.def.res] += o.rent; this.lastRent[ch.def.res] += o.rent; paid += o.rent;
+      if (this.stats) this.stats.fromRent += o.rent;
+    }
+    this.t = Object.assign({ drawsLeft: o.draws, ap: o.freeAP + (this.ev("progress") ? 1 : 0), spellUsed: false, spells: 0, buys: 0, bought: {}, discarded: false, handed: 0 }, this.perkFlags(p));
+    // the one furthest behind gets a little more to work with
+    this.underdog = !!o.underdogAP && this.players.length > 1 && this.players.every((_, q) => q === p || this.score(q) > this.score(p));
+    if (this.underdog) this.t.ap += o.underdogAP;
     // a short hand is topped up
     this.lastRefill = [];
     while (o.refill && pl.hand.length < o.refill) { const c = this.draw1(); if (!c) break; pl.hand.push(c); this.lastRefill.push(c); }
+    // Underdog's luck: a card for whoever is alone in last place
+    this.lastLuck = null;
+    if (o.underdog && this.round > 1 && this.lastPlace(p) && pl.hand.length < o.handLimit) { const c = this.draw1(); if (c) { pl.hand.push(c); this.lastLuck = c; } }
   }
+
+  // Is this player alone in last place?
+  lastPlace(p) { return this.players.length > 1 && this.players.every((_, q) => q === p || this.score(q) > this.score(p)); }
 
   refillDisplay() { while (this.display.length < this.o.display && this.charterDeck.length) this.display.push(this.charterDeck.shift()); }
 
@@ -374,7 +531,8 @@ class RiverGame {
     this.refillDisplay();
     this.t.ap += cs.length * o.meldAP + (hit ? o.shapeAP : 0) + (this.ev("charter") ? 2 : 0) + (ch.kind === "run" ? cs.length * (o.runAP || 0) : 0);
     pl.renown += cs.length * o.meldRenown;
-    if (wild) { this.t.spellUsed = true; if (this.stats) { this.stats.casts++; this.stats.spells.glamour++; } }
+    this.lastSpellDraw = [];
+    if (wild) { this.noteSpell(p); this.spellbound(p, this.lastSpellDraw); if (this.stats) { this.stats.casts++; this.stats.spells.glamour++; } }
     if (this.stats) { this.stats.founds++; this.stats[ch.kind === "set" ? "foundSets" : "foundRuns"]++; if (hit) this.stats.shapeHits++; }
     return { ch, shapeHit: hit };
   }
@@ -387,20 +545,41 @@ class RiverGame {
     ch.cards.push(c);
     ch.touched = this.turnCount;
     if (this.stats) this.stats[ch.kind === "set" ? "layoffSets" : "layoffRuns"]++;
-    if (ch.owner === p) { this.t.ap += o.ownLayoffAP; if (this.stats) this.stats.ownLayoffs++; }
+    if (ch.owner === p) {
+      this.t.ap += o.ownLayoffAP;
+      if (this.power(p, "tithe")) pl.res[ch.def.res] += 1;
+      if (this.stats) this.stats.ownLayoffs++;
+    }
     else {
       this.t.ap += o.layoffAP + (this.ev("feast") ? 1 : 0);
-      this.pl(ch.owner).res[ch.def.res] += o.ownerBonus;
-      if (this.stats) { this.stats.layoffs++; this.stats.fromOwner += o.ownerBonus; }
+      const gift = this.ownerGift(ch.owner);
+      this.pl(ch.owner).res[ch.def.res] += gift;
+      if (this.stats) { this.stats.layoffs++; this.stats.fromOwner += gift; }
     }
     return true;
   }
 
+  // Spellbound: the first spell cast each turn draws its caster a card.
+  spellbound(p, got) {
+    if (!this.power(p, "grimoire") || this.t.spells > 1 || this.pl(p).hand.length >= 6) return;
+    const d = this.draw1();
+    if (d) { this.pl(p).hand.push(d); got.push(d); }
+  }
+  // What a Charter's owner gets when another player lays off on it (Tithe doubles it).
+  ownerGift(owner) { return this.o.ownerBonus + (this.perkOf(owner) === "tithe" ? this.o.ownerBonus : 0); }
+
   // Cast a spell from your hand, one a turn. arg: Blink, the place to go to; Recall, an index in
   // the discard pile; Renew, the id of one of your Charters. Returns any cards it brought you.
-  canCast(p) { return this.canPlay(p, 1) && !this.t.spellUsed; }
+  // A spell that brings cards back may be your last card, as you'll still have one to discard: Scry, Recall,
+  // or any spell that Spellbound will draw a card for.
+  refills(c, p) {
+    if (!c) return false;
+    if (c.spell === "scry" || c.spell === "recall") return true;
+    return p != null && this.power(p, "grimoire") && !(this.t.spells > 0) && this.pl(p).hand.length <= 6 && this.deck.length + this.discard.length > 0;
+  }
+  canCast(p, c) { return this.canPlay(p, this.refills(c, p) ? 0 : 1) && !this.t.spellUsed; }
   castable(p, c) {
-    if (!c || !c.spell || isWild(c) || !this.canCast(p)) return false;
+    if (!c || !c.spell || isWild(c) || !this.canCast(p, c)) return false;
     if (c.spell === "recall") return this.discard.length > 0;
     if (c.spell === "renew") return this.charters.some(ch => ch.owner === p);
     if (c.spell === "scry") return this.deck.length + this.discard.length > 1;
@@ -413,7 +592,7 @@ class RiverGame {
     if (k === "blink" && (!(arg >= 0 && arg < NPL) || arg === pl.pos)) throw new Error("blink where?");
     if (k === "renew" && !this.charters.some(ch => ch.id === arg && ch.owner === p)) throw new Error("renew which Charter?");
     pl.hand = pl.hand.filter(x => x.id !== id);
-    this.t.spellUsed = true;
+    this.noteSpell(p);
     const got = [];
     if (k === "blink") pl.pos = arg;
     else if (k === "scry") for (let n = 0; n < (this.o.scryDraw || 2); n++) { const d = this.draw1(); if (d) { pl.hand.push(d); got.push(d); } }
@@ -425,6 +604,7 @@ class RiverGame {
     } else if (k === "haggle") this.t.bought = {};
     else if (k === "renew") this.charters.find(ch => ch.id === arg).touched = this.turnCount;
     this.discard.push(c);
+    this.spellbound(p, got);
     if (this.stats) { this.stats.casts++; this.stats.spells[k]++; }
     return got;
   }
@@ -434,7 +614,9 @@ class RiverGame {
   priceRise(k) { return this.o.escalate && !this.ev("free") ? Math.max(0, k - this.o.riseAfter + 1) : 0; }   // with k purchases made
   vendorOf(v) { return this.o.perVendor ? String(v) : "all"; }
   bought(v) { return (this.t.bought || {})[this.vendorOf(v)] || 0; }
-  rise(v) { return this.priceRise(this.bought(v)); }
+  rise(v) { return this.priceFor(v); }
+  // The rise in price at vendor v for the turn's player, after `more` purchases beyond those made (none at the Forge for a Master-Smith).
+  priceFor(v, more = 0) { return String(v) === String(FORGE) && this.power(this.turn, "forge") ? 0 : this.priceRise(this.bought(v) + more); }
   noteBuy(v) { const k = this.vendorOf(v); this.t.bought = this.t.bought || {}; this.t.bought[k] = (this.t.bought[k] || 0) + 1; }
   buyPrice() { return this.o.buyCost + this.rise("cards"); }
   workCost(p) {
@@ -477,16 +659,41 @@ class RiverGame {
     if (!this.o.square) return DIST[a][b];
     return a === SQUARE || b === SQUARE ? 1 : Math.min(DIST[a][b], 2);
   }
-  canMove(p, dest) { const pl = this.pl(p); return p === this.turn && this.t.drawsLeft === 0 && !this.t.discarded && this.t.ap >= this.moveCost(pl.pos, dest); }
+  // A step costs 1 stamina: nothing into the Square with Shortcuts, nor while Wayfinder's free walk is unused.
+  freeSquare(p, dest) { return dest === SQUARE && this.o.square && this.perkOf(p) === "shortcut"; }
+  stepCost(p, dest) { return this.freeSquare(p, dest) || (p === this.turn && this.t && this.t.freeStep) ? 0 : 1; }
+  // The stamina it takes a player to walk from a to b the cheapest way.
+  walkCost(p, a, b) {
+    let n = this.travel(a, b);
+    if (n && this.o.square && this.perkOf(p) === "shortcut") n = b === SQUARE ? 0 : 1;
+    return n && p === this.turn && this.t && this.t.freeStep ? n - 1 : n;
+  }
+  // The first step of that walk: round the ring road, or through the Square when that's shorter (or cheaper).
+  nextStep(p, a, b) {
+    if (a === b) return a;
+    const ns = this.neighbours(a).filter(n => this.travel(n, b) < this.travel(a, b));
+    if (this.o.square && this.perkOf(p) === "shortcut" && !ns.includes(b) && ns.includes(SQUARE)) return SQUARE;
+    return ns.includes(b) ? b : ns[0];
+  }
+  canMove(p, dest) { const pl = this.pl(p); return p === this.turn && this.t.drawsLeft === 0 && !this.t.discarded && this.moveCost(pl.pos, dest) === 1 && this.t.ap >= this.stepCost(p, dest); }
   move(p, dest) {
     const pl = this.pl(p);
     if (!this.canMove(p, dest)) throw new Error("can't move");
-    const cost = this.moveCost(pl.pos, dest);
+    const cost = this.stepCost(p, dest);
     pl.pos = dest;
     this.t.ap -= cost;
+    if (!this.freeSquare(p, dest)) this.t.freeStep = false;
     if (this.stats) { this.stats.moves++; this.stats.apSpent += cost; }
   }
 
+  // When the quest deck runs out (in a long game), the quests completed so far go back into it, shuffled,
+  // to be offered again (the ones that start sagas only; later parts are never in the deck).
+  restock() {
+    if (this.qdeck.length) return;
+    const done = this.players.flatMap(pl => pl.done).filter(q => !q.sealed && !q.personal && (q.saga == null || q.part === 0));
+    this.recycled = (this.recycled || 0) + 1;
+    this.qdeck = shuffle(done.map(q => Object.assign({}, q, { id: q.id + 1000 * this.recycled })), this.rnd);
+  }
   // Quests on offer at the Tavern: the open row, and the sealed commission.
   tavernHas() { return this.qrow.length > 0 || this.sealedDeck.length > 0 || this.qdeck.length > 0; }
   canWork(p) {
@@ -505,7 +712,7 @@ class RiverGame {
     const pl = this.pl(p), sp = pl.pos;
     if (!this.canWork(p)) throw new Error("can't work");
     const r = PRODUCES[sp], cost = this.workCost(p);
-    if (r >= 0) { const y = this.yieldAt(sp); pl.res[r] += y; if (this.stats) this.stats.fromWork += y; }
+    if (r >= 0) { const y = this.yieldAt(sp, p); pl.res[r] += y; if (sp === FORGE) this.t.forgeBonus = false; if (this.stats) this.stats.fromWork += y; }
     else if (sp === TAVERN) {
       const full = pl.quests.length >= this.o.questLimit;
       if (full && !pl.quests[tear]) throw new Error("tear up a quest to take another");
@@ -514,12 +721,13 @@ class RiverGame {
       if (full) this.tearUp(p, tear);
       let q;
       if (pick === "sealed") { q = this.sealedDeck.shift(); if (this.stats) this.stats.sealedTaken++; }
-      else if (pick === "row") { q = this.qrow.splice(arg, 1)[0]; if (this.qdeck.length) this.qrow.push(this.qdeck.pop()); }
+      else if (pick === "row") { q = this.qrow.splice(arg, 1)[0]; this.restock(); if (this.qdeck.length) this.qrow.push(this.qdeck.pop()); }
       else q = this.qdeck.pop();
       pl.quests.push(q);
     } else if (sp === HARBOUR) {
       if (!arg || arg[0] === arg[1] || pl.res[arg[0]] < 1) throw new Error("bad trade");
-      pl.res[arg[0]]--; pl.res[arg[1]] += this.ev("harbour") ? 2 : 1;
+      pl.res[arg[0]]--; pl.res[arg[1]] += this.ev("harbour") || this.t.tradeBonus || this.power(p, "tongue") ? 2 : 1;
+      this.t.tradeBonus = false;
       if (this.stats) this.stats.swaps++;
     }
     this.t.ap -= cost;
@@ -534,6 +742,7 @@ class RiverGame {
     if (!this.canRefreshQuests(p)) throw new Error("can't refresh the quests");
     this.qdeck.unshift(...this.qrow.splice(0));
     while (this.qrow.length < this.o.qrowSize && this.qdeck.length) this.qrow.push(this.qdeck.pop());
+    this.restock();
     this.t.ap--;
     if (this.stats) { this.stats.refreshes = (this.stats.refreshes || 0) + 1; this.stats.apSpent++; }
   }
@@ -567,8 +776,10 @@ class RiverGame {
     this.t.ap = 0;
   }
 
+  // One of a player's quests: an index into their quests, or "personal" for their personal quest.
+  questAt(p, qi) { const pl = this.pl(p); return qi === "personal" ? pl.personal : pl.quests[qi]; }
   canHandIn(p, qi) {
-    const pl = this.pl(p), q = pl.quests[qi];
+    const pl = this.pl(p), q = this.questAt(p, qi);
     return !!q && p === this.turn && this.t.discarded && this.t.handed < this.o.questsPerTurn && q.need.every((n, r) => pl.res[r] >= n);
   }
 
@@ -582,16 +793,17 @@ class RiverGame {
   // Hand in a quest. Completing part of a saga hands you the next part; with questCards, it draws you cards.
   handIn(p, qi) {
     if (!this.canHandIn(p, qi)) return false;
-    const pl = this.pl(p), q = pl.quests[qi];
+    const pl = this.pl(p), q = this.questAt(p, qi), behind = this.o.underdog && this.lastPlace(p);
     for (let r = 0; r < 4; r++) pl.res[r] -= q.need[r];
     pl.renown += q.pts;
     if (this.ev("bounty")) { pl.renown += 2; pl.bounty = (pl.bounty || 0) + 2; }
-    pl.quests.splice(qi, 1);
+    if (qi === "personal") { pl.personal = null; pl.empowered = true; }
+    else pl.quests.splice(qi, 1);
     pl.done.push(q);
     this.t.handed++;
     this.lastNext = null;
     this.lastDrawn = [];
-    for (let k = this.questCards(q); k > 0; k--) { const d = this.draw1(); if (d) { pl.hand.push(d); this.lastDrawn.push(d); } }
+    for (let k = this.questCards(q); k > 0 && !(this.o.questCardCap && pl.hand.length >= this.o.questCardCap); k--) { const d = this.draw1(); if (d) { pl.hand.push(d); this.lastDrawn.push(d); } }
     if (this.stats) this.stats.questCards += this.lastDrawn.length;
     if (q.saga != null && q.part < 2) { this.lastNext = sagaPart(q.saga, q.part + 1); pl.quests.push(this.lastNext); }
     if (this.stats) {
@@ -599,6 +811,12 @@ class RiverGame {
       if (q.type !== pl.character.favour) this.stats.offType++;
       if (q.sealed) this.stats.sealedDone++;
       if (q.saga != null) this.stats.sagaDone[q.part]++;
+    }
+    // Underdog's luck: up to 2 more renown for a quest completed from last place, never past the leader
+    this.lastLuckRenown = 0;
+    if (behind) {
+      const gap = Math.max(...this.players.map((_, q) => (q === p ? -Infinity : this.score(q)))) - this.score(p);
+      if (gap > 0) { this.lastLuckRenown = Math.min(2, gap); pl.renown += this.lastLuckRenown; }
     }
     if (this.score(p) >= this.o.target) this.endTriggered = true;
     return true;
@@ -624,13 +842,15 @@ class RiverGame {
       if (++this.round > this.o.maxRounds) { this.over = true; return; }
       this.nextEvent();
       this.newEvent = this.event;
-      // a new round: the quest longest on offer at the Tavern leaves
+      // a new round: the quest longest on offer at the Tavern leaves, and the row is filled up again
+      this.restock();
       if (this.o.refresh && this.qrow.length && this.qdeck.length) {
         this.lastExpired = this.qrow.shift();
         this.qrow.push(this.qdeck.pop());
         this.qdeck.unshift(this.lastExpired);
         if (this.stats) this.stats.expired++;
       }
+      while (this.qrow.length < this.o.qrowSize) { this.restock(); if (!this.qdeck.length) break; this.qrow.push(this.qdeck.pop()); }
     }
     this.startTurn();
   }
@@ -651,7 +871,9 @@ class RiverGame {
     g.nextCharter = this.nextCharter;
     g.qdeck = this.qdeck.slice(); g.qrow = this.qrow.slice(); g.sealedDeck = this.sealedDeck.slice();
     g.eventDeck = (this.eventDeck || []).slice(); g.event = this.event || null;
-    g.players = this.players.map(pl => ({ pos: pl.pos, hand: pl.hand.slice(), res: pl.res.slice(), quests: pl.quests.slice(), done: pl.done.slice(), renown: pl.renown, bounty: pl.bounty || 0, character: pl.character }));
+    g.players = this.players.map(pl => ({ pos: pl.pos, hand: pl.hand.slice(), res: pl.res.slice(), quests: pl.quests.slice(), done: pl.done.slice(), renown: pl.renown, bounty: pl.bounty || 0, character: pl.character,
+      personal: pl.personal || null, empowered: !!pl.empowered }));
+    g.recycled = this.recycled || 0;
     g.turn = this.turn; g.round = this.round; g.turnCount = this.turnCount; g.over = this.over; g.endTriggered = this.endTriggered;
     g.t = Object.assign({}, this.t, { bought: Object.assign({}, this.t.bought) });
     g.stats = null;
@@ -662,5 +884,5 @@ class RiverGame {
 if (typeof module !== "undefined" && typeof window === "undefined") {
   module.exports = { RiverGame, RV_DEFAULTS, SUITS, RES, PLACES, TYPES, ADJ, DIST, PRODUCES, QUESTS, SEALED, SAGAS, SPELLS, EVENTS, CHARTERS, CHARACTERS, SHAPES,
     shuffle, isSet, isRun, isMeld, isWild, shapeHit, placeWild, fits, questDeck, sagaPart, deckShape,
-    MARKET, FORGE, TAVERN, TEMPLE, LIBRARY, HARBOUR, SQUARE, NPL, GOLD, STEEL, FAITH, LORE };
+    MARKET, FORGE, TAVERN, TEMPLE, LIBRARY, HARBOUR, SQUARE, NPL, GOLD, STEEL, FAITH, LORE, PERKS, PERSONAL, EMPOWERED };
 }

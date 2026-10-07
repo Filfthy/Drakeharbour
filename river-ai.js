@@ -3,17 +3,21 @@
 //   planner():      tries several greedy variants for this turn in sampled
 //                   futures and plays the one that does best
 const RC = typeof module !== "undefined" && typeof window === "undefined" ? require("./river-core.js")
-  : { RiverGame, ADJ, DIST, PRODUCES, TAVERN, HARBOUR, SHAPES, CHARACTERS, isSet, isRun, isMeld, isWild, shapeHit, fits, shuffle };
+  : { RiverGame, ADJ, DIST, PRODUCES, FORGE, TAVERN, HARBOUR, SHAPES, CHARACTERS, isSet, isRun, isMeld, isWild, shapeHit, fits, shuffle };
 const AI_NPL = RC.ADJ.length;
 
 // ---------------------------------------------------------------- reading the position
 
+// What an empowered perk is worth to its holder: more the further the game has to run.
+const powerValue = g => { const lead = Math.max(...g.players.map((_, p) => g.score(p))); return Math.max(0, 10 * (1 - lead / g.o.target)); };
 const questValue = (g, pl, q) => q.pts + (q.type === pl.character.favour ? g.o.favourBonus : 0) + (q.saga != null ? [2, 1, 0][q.part] : 0);
 
 // Resources still missing for a player's quests, best quests first.
 function needsOf(g, pl) {
   const pool = pl.res.slice(), missing = [0, 0, 0, 0], rows = [];
-  const qs = pl.quests.map(q => [q, questValue(g, pl, q)]).sort((a, b) => b[1] - a[1]);
+  const qs = pl.quests.map(q => [q, questValue(g, pl, q)]);
+  if (pl.personal) qs.push([pl.personal, questValue(g, pl, pl.personal) + powerValue(g)]);
+  qs.sort((a, b) => b[1] - a[1]);
   for (const [q, val] of qs) {
     let miss = 0, need = 0;
     for (let r = 0; r < 4; r++) { const u = Math.min(pool[r], q.need[r]); pool[r] -= u; const m = q.need[r] - u; miss += m; missing[r] += m; need += q.need[r]; }
@@ -137,7 +141,7 @@ function chooseCharter(g, p, meld, pick = 0) {
 
 // ---------------------------------------------------------------- the greedy player
 
-const DEFAULT_PARAMS = { drawDiscard: true, feedOthers: true, apTarget: 0, meld: true, keepPairs: false, charterPick: 0, buyLeft: true };
+const DEFAULT_PARAMS = { drawDiscard: true, feedOthers: true, apTarget: 0, meld: true, keepPairs: false, charterPick: 0, buyLeft: true, tearUp: false };
 
 function pickQuest(g, pl, scoreOnly = false) {
   const { pool } = needsOf(g, pl);
@@ -158,6 +162,26 @@ function pickQuest(g, pl, scoreOnly = false) {
   return scoreOnly ? bv : best;
 }
 
+// Holding your limit of quests: is one at the Tavern so much better than your worst that it's worth
+// tearing that one up? (Later parts of a saga are never torn up.) Returns { take, tear } or null.
+// (worth it for 2 renown or more: one player who swaps wins about 35.5% at 3 players against those who don't.
+// Off by default (params.tearUp): with every player swapping, Brother Anselm rose to 37% and Kestra fell to 29%.)
+const SWAP_GAIN = 2;
+function swapQuest(g, pl) {
+  if (pl.quests.length < g.o.questLimit || !g.tavernHas()) return null;
+  let worst = -1, wv = Infinity;
+  pl.quests.forEach((q, i) => {
+    if (q.saga != null && q.part > 0) return;
+    let short = 0;
+    for (let r = 0; r < 4; r++) short += Math.max(0, q.need[r] - pl.res[r]);
+    const v = questValue(g, pl, q) - 1.6 * short;
+    if (v < wv) { wv = v; worst = i; }
+  });
+  if (worst < 0) return null;
+  const take = pickQuest(g, pl);
+  return take !== -1 && pickQuest(g, pl, true) > wv + SWAP_GAIN ? { take, tear: worst } : null;
+}
+
 // Cast a spell of this kind from your hand, if you can.
 function cast(g, p, kind, arg) {
   const c = g.players[p].hand.find(x => x.spell === kind);
@@ -168,7 +192,7 @@ function cast(g, p, kind, arg) {
 
 // Spend AP in town: walk to and work the place that best feeds your quests
 // (k-th best first, for variety), then choose again.
-function spendAP(g, p, firstPick = 0) {
+function spendAP(g, p, firstPick = 0, tear = false) {
   const o = g.o;
   let pick = firstPick, target = -1, guard = 0;
   while (g.t.ap > 0 && guard++ < 40) {
@@ -180,7 +204,7 @@ function spendAP(g, p, firstPick = 0) {
     if (target < 0) {
       const cands = [];
       for (let s = 0; s < AI_NPL; s++) {
-        const walk = g.travel(pl.pos, s), d = blink && walk >= 2 ? 0 : walk, left = g.t.ap - d;
+        const walk = g.walkCost(p, pl.pos, s), d = blink && walk >= 2 ? 0 : walk, left = g.t.ap - d;
         if (left < 1) continue;
         let val = 0, acts = 0;
         const r = RC.PRODUCES[s];
@@ -188,11 +212,16 @@ function spendAP(g, p, firstPick = 0) {
         const crowd = o.crowdAP && g.players.some((q, i) => i !== p && q.pos === s) ? o.crowdAP : 0;
         if (r >= 0) {
           let n = 0, cost = 0;
-          for (;;) { const c = 1 + crowd + g.priceRise(g.bought(s) + n); if (cost + c > left) break; cost += c; n++; }
-          const units = n * g.yieldAt(s), u = Math.min(units, missing[r]); val = u + (units - u) * spare; acts = cost;
+          for (;;) { const c = 1 + crowd + g.priceFor(s, n); if (cost + c > left) break; cost += c; n++; }
+          // a perk's extra yield: on every work, or (once a turn) on the first
+          const y1 = g.yieldAt(s, p), y0 = g.t.forgeBonus && s === RC.FORGE ? y1 - 1 : y1;
+          const units = n > 0 ? y1 + (n - 1) * y0 : 0, u = Math.min(units, missing[r]); val = u + (units - u) * spare; acts = cost;
         }
-        else if (s === RC.TAVERN) { if (left >= 1 + crowd && pl.quests.length < o.questLimit && g.tavernHas()) { val = [2.6, 1.8, 0.9][pl.quests.length]; acts = 1 + crowd; } }
-        else if (s === RC.HARBOUR) { let sur = 0, mis = 0; for (let k = 0; k < 4; k++) { sur += pool[k]; mis += missing[k]; } const two = g.ev("harbour"); const n = Math.min(Math.floor(left / (1 + crowd)), sur, two ? Math.ceil(mis / 2) : mis); val = n * (two ? 1.7 : 0.85); acts = n * (1 + crowd); }
+        else if (s === RC.TAVERN) {
+          if (left >= 1 + crowd && pl.quests.length < o.questLimit && g.tavernHas()) { val = [2.6, 1.8, 0.9][pl.quests.length]; acts = 1 + crowd; }
+          else if (tear && left >= 1 + crowd && swapQuest(g, pl)) { val = 1.2; acts = 1 + crowd; }
+        }
+        else if (s === RC.HARBOUR) { let sur = 0, mis = 0; for (let k = 0; k < 4; k++) { sur += pool[k]; mis += missing[k]; } const two = g.ev("harbour") || g.power(p, "tongue"); const n = Math.min(Math.floor(left / (1 + crowd)), sur, two ? Math.ceil(mis / 2) : mis); val = n * (two ? 1.7 : 0.85) + (n > 0 && !two && g.t.tradeBonus ? 0.85 : 0); acts = n * (1 + crowd); }
         if (val > 0) cands.push({ s, rate: val / (d + acts) });
       }
       cands.sort((a, b) => b.rate - a.rate);
@@ -201,10 +230,9 @@ function spendAP(g, p, firstPick = 0) {
       pick = 0;
     }
     if (pl.pos !== target) {
-      if (blink && g.travel(pl.pos, target) >= 2 && cast(g, p, "blink", target)) continue;
-      // a step along the ring road, or through the Square when that's shorter
-      const step = g.neighbours(pl.pos).find(n => g.travel(n, target) < g.travel(pl.pos, target));
-      g.move(p, step);
+      if (blink && g.walkCost(p, pl.pos, target) >= 2 && cast(g, p, "blink", target)) continue;
+      // a step along the ring road, or through the Square when that's shorter (or cheaper)
+      g.move(p, g.nextStep(p, pl.pos, target));
       continue;
     }
     const r = RC.PRODUCES[target];
@@ -214,6 +242,8 @@ function spendAP(g, p, firstPick = 0) {
       // nothing worth taking, and AP to spare: pay 1 AP for fresh quests, once
       if (pl.quests.length < o.questLimit && !g.t.refreshedQ && g.t.ap >= 2 && pickQuest(g, pl, true) < 2.5 && g.canRefreshQuests(p)) { g.refreshQuests(p); g.t.refreshedQ = true; continue; }
       if (pl.quests.length < o.questLimit && g.canWork(p)) { g.work(p, pickQuest(g, pl)); continue; }
+      const sw = tear && swapQuest(g, pl);
+      if (sw && g.canWork(p)) { g.work(p, sw.take, sw.tear); continue; }
     }
     else if (target === RC.HARBOUR) {
       let give = -1, get = -1;
@@ -284,7 +314,7 @@ function playTurn(g, p, params = DEFAULT_PARAMS) {
     playCards(g, p, P, keep);
   }
   // 5. town
-  spendAP(g, p, P.apTarget);
+  spendAP(g, p, P.apTarget, P.tearUp);
   // 6. spare AP buys cards for next turn
   while (P.buyLeft && g.canBuy(p) && pl.hand.length < g.o.handLimit) g.buy(p, "deck");
   // 7. discard, hand in, end
@@ -292,7 +322,8 @@ function playTurn(g, p, params = DEFAULT_PARAMS) {
   g.discardCard(p, d.id);
   let best = -1, bv = -1;
   pl.quests.forEach((q, i) => { if (g.canHandIn(p, i)) { const v = questValue(g, pl, q); if (v > bv) { bv = v; best = i; } } });
-  if (best >= 0) g.handIn(p, best);
+  if (pl.personal && g.canHandIn(p, "personal") && questValue(g, pl, pl.personal) + powerValue(g) > bv) best = "personal";
+  if (best !== -1) g.handIn(p, best);
   if (pl.hand.length > g.o.handLimit) pl.hand.sort((a, b) => keepValue(b, pl.hand, g, p) - keepValue(a, pl.hand, g, p));
   g.endTurn(p, needsOf(g, pl).pool);
 }
@@ -330,7 +361,8 @@ function determinize(g, p) {
   return x;
 }
 
-const VARIANTS = [{}, { drawDiscard: false }, { feedOthers: false }, { apTarget: 1 }, { apTarget: 2 }, { meld: false }, { keepPairs: true }, { charterPick: 1 }, { buyLeft: false }];
+// (tearUp: swapping a poor quest at the Tavern; a planner that may wins about 36% at 3 players and 29% at 4 against planners that don't)
+const VARIANTS = [{}, { drawDiscard: false }, { feedOthers: false }, { apTarget: 1 }, { apTarget: 2 }, { meld: false }, { keepPairs: true }, { charterPick: 1 }, { buyLeft: false }, { tearUp: true }];
 
 const planner = (opts = {}) => {
   const worlds = opts.worlds || 10, rounds = opts.rounds || 2, z = opts.z == null ? 1 : opts.z;
