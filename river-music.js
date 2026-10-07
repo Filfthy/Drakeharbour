@@ -309,7 +309,7 @@ const Music = {
   MAXGAIN: 0.5,
   sound: true,
   on: true,
-  volume: 0.5,
+  volume: 0.4,
   ctx: null,
   band: null,
   timer: 0,
@@ -388,7 +388,7 @@ Music.init();
 // Sound effects for the table: cards sliding and landing, coins, steps, chimes.
 const Sfx = {
   last: {},
-  volume: (() => { try { const v = localStorage.getItem("rv_sfxvol"); return v == null ? 0.85 : +v; } catch (e) { return 0.85; } })(),
+  volume: (() => { try { const v = localStorage.getItem("rv_sfxvol"); return v == null ? 1 : +v; } catch (e) { return 1; } })(),
   setVolume(v) {
     this.volume = Math.max(0, Math.min(1, v));
     try { localStorage.setItem("rv_sfxvol", String(this.volume)); } catch (e) { /* ignore */ }
@@ -613,7 +613,7 @@ const Sfx = {
 // The town around you, very quietly: water lapping at the quays, a murmur of people, a gull now and then,
 // and the Forge's hammer in the distance. It has its own volume (Town) and follows the sound switch.
 const Ambience = {
-  volume: (() => { try { const v = localStorage.getItem("rv_ambvol"); return v == null ? 0.5 : +v; } catch (e) { return 0.5; } })(),
+  volume: (() => { try { const v = localStorage.getItem("rv_ambvol"); return v == null ? 0.15 : +v; } catch (e) { return 0.15; } })(),
   nodes: null,
   timers: {},
   // very low: at the default setting the water and voices sit far below every sound effect

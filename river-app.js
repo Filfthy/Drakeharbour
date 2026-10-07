@@ -233,7 +233,7 @@ class App {
     if (!load("fsdefault2", false)) { save("fs", 2); save("fsdefault2", true); }
     this.fs = Math.max(0, Math.min(2, load("fs", 2)));
     this.fullStart = load("fullstart", true);
-    this.panels = load("panels", "tinted");
+    this.panels = load("panels", "clear");
     this.scenery = load("scenery", !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches));
     this.lines = [];
     this.events = [];
