@@ -295,7 +295,13 @@ class App {
     document.addEventListener("webkitfullscreenchange", () => this.fullUi());
     window.addEventListener("resize", () => this.fit());
     $("nightlights").innerHTML = SCENE.lights.map(([x, y, r]) =>
-      `<i style="left:${x * MAP_K}px;top:${y * MAP_K}px;width:${r * 4}px;height:${r * 4}px"></i>`).join("");
+      `<i style="left:${x * MAP_K}px;top:${y * MAP_K}px;width:${r * 4}px;height:${r * 4}px"></i>`).join("")
+      + `<div class="lighthouse-lantern" style="left:${447 * MAP_K}px;top:${584 * MAP_K}px">
+        <svg id="lighthouse-beam" viewBox="0 0 500 130" aria-hidden="true">
+          <defs><linearGradient id="beam-fade"><stop offset="0" stop-color="#fff1bf" stop-opacity=".5"/><stop offset=".55" stop-color="#ffe6a0" stop-opacity=".2"/><stop offset="1" stop-color="#ffe6a0" stop-opacity="0"/></linearGradient>
+          <filter id="beam-soft" x="-10%" y="-15%" width="120%" height="130%"><feGaussianBlur stdDeviation="3"/></filter></defs>
+          <path d="M0 65 L500 0 L500 130 Z" fill="url(#beam-fade)" filter="url(#beam-soft)"/>
+        </svg></div>`;
     this.fit();
     this.setFs(this.fs);
     this.setPanels(this.panels);
@@ -312,6 +318,10 @@ class App {
     // Reveal extra countryside at the same scale as the original, fixed town map.
     const sceneWidth = Math.max(1600, innerWidth / s);
     $("stage").style.setProperty("--scene-width", `${sceneWidth}px`);
+    // Cover the complete window, including countryside and any letterboxing.
+    // A pixel of overscan on each edge absorbs the rounded stage translation.
+    $("stage").style.setProperty("--viewport-width", `${(innerWidth + 2) / s}px`);
+    $("stage").style.setProperty("--viewport-height", `${(innerHeight + 2) / s}px`);
     $("stage").classList.toggle("wide-scene", sceneWidth > 1600.5);
     $("stage").style.transform = `translate(${Math.round((innerWidth - 1600 * s) / 2)}px, ${Math.round((innerHeight - 900 * s) / 2)}px) scale(${s})`;
   }
@@ -1265,6 +1275,9 @@ class App {
         { offset: 0, opacity: 0 }, { offset: 0.25, opacity: 0.15 },
         { offset: 0.42, opacity: 1 }, { offset: 0.58, opacity: 1 },
         { offset: 0.8, opacity: 0.2 }, { offset: 1, opacity: 0 }
+      ], timing),
+      $("lighthouse-beam").animate([
+        { transform: "rotate(135deg)" }, { transform: "rotate(225deg)" }
       ], timing)
     ];
     this.nightAnimations = animations;

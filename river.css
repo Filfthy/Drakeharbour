@@ -634,7 +634,8 @@ b.who::before { content: ""; display: inline-block; width: 0.62em; height: 0.62e
 @keyframes hintfade { 0%, 78% { opacity: 1; } 100% { opacity: 0; } }
 
 /* ---------------------------------------------------------------- panels, questions and the lens */
-#overlay { position: absolute; inset: 0; background: rgba(10, 6, 2, 0.6); display: flex; align-items: center; justify-content: center; z-index: 30; }
+#overlay { position: absolute; left: 50%; top: 50%; width: var(--viewport-width, 1600px); height: var(--viewport-height, 900px);
+  transform: translate(-50%, -50%); background: rgba(10, 6, 2, 0.6); display: flex; align-items: center; justify-content: center; z-index: 30; }
 #overlay.hidden { display: none; }
 #overlay.lens { background: rgba(10, 6, 2, 0.45); cursor: zoom-out; }
 /* questions can be dragged out of the way, so the table behind stays readable */
@@ -971,3 +972,11 @@ b.who::before { content: ""; display: inline-block; width: 0.62em; height: 0.62e
 #title-share p { font-size: 17px; color: #fff; }
 #title-share .share-action { font-size: 16px; padding: 6px 12px; }
 #title-foot { position: relative; left: auto; right: auto; bottom: auto; width: 100%; flex-shrink: 0; margin-bottom: 12px; }
+
+/* The harbour lantern sweeps over the sea only while the night lights are visible. */
+#nightlights .lighthouse-lantern { position: absolute; width: 0; height: 0; pointer-events: none; }
+#lighthouse-beam { position: absolute; left: 0; top: -55.9px; width: 430px; height: 111.8px; overflow: visible;
+  transform-origin: 0 50%; transform: rotate(180deg); mix-blend-mode: screen; }
+#nightlights .lighthouse-lantern::after { content: ""; position: absolute; left: -13px; top: -13px; width: 26px; height: 26px;
+  border-radius: 50%; background: radial-gradient(circle, #fffbe0 0%, #ffe9a3 10%, rgba(255, 220, 132, .55) 24%, transparent 70%);
+  mix-blend-mode: screen; }

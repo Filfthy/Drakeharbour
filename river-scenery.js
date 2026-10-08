@@ -23,9 +23,14 @@ const SCENE = {
   // the four banners round the fountain (left, top, right, bottom)
   flags: [[790, 455, 799, 480], [804, 462, 813, 487], [878, 459, 888, 484], [893, 464, 903, 487]],
   // chimneys: top (x, y), how high the smoke rises, how thick it is
-  chimneys: [[864, 318, 165, 0.85], [1034, 343, 120, 0.85]],
+  chimneys: [[864, 318, 145, 1.05], [1034, 343, 120, 0.85]],
   // firelight: the Forge's fire and the Tavern's windows (x, y, radius, strength)
   lights: [[833, 367, 9, 0.34], [948, 387, 7, 0.24], [1037, 408, 10, 0.28], [1073, 396, 6, 0.22]],
+  // Grazing sheep: body bounds, then head centre/radius and an individual phase.
+  sheep: [
+    { body: [1180, 837, 14, 12], head: [1173, 837, 4, 0.4] },
+    { body: [1207, 830, 14, 12], head: [1200, 829, 4, 2.7] }
+  ],
   // gulls: start (x, y), heading (x, y), speed (px a second), loop length (px), start along it, size
   gulls: [
     [-60, 395, 1, -0.06, 34, 2600, 0, 6.2],
@@ -221,20 +226,29 @@ const Scenery = {
     const pos = gl.getAttribLocation(prog, "aPos");
     gl.enableVertexAttribArray(pos);
     gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
-    for (const k of ["uMap", "uWater", "uTime", "uRes", "uChim", "uBoatBox", "uBoatPiv", "uFall", "uLight", "uFlag", "uGull"]) this.u[k] = gl.getUniformLocation(prog, k);
+    for (const k of ["uMap", "uWater", "uForgePatch", "uMillPatch", "uTime", "uRes", "uChim", "uBoatBox", "uBoatPiv", "uFall", "uLight", "uFlag", "uGull", "uGullDir", "uSheepBox", "uSheepHead"]) this.u[k] = gl.getUniformLocation(prog, k);
     gl.uniform2f(this.u.uRes, this.MAP[0], this.MAP[1]);
     gl.uniform1i(this.u.uMap, 0);
     gl.uniform1i(this.u.uWater, 1);
+    gl.uniform1i(this.u.uForgePatch, 2);
+    gl.uniform1i(this.u.uMillPatch, 3);
     const flat = rows => new Float32Array(rows.flat());
     gl.uniform4fv(this.u.uChim, flat(SCENE.chimneys));
     gl.uniform4fv(this.u.uBoatBox, flat(SCENE.boats.map(b => b.slice(0, 4))));
     gl.uniform4fv(this.u.uFall, flat(SCENE.falls));
     gl.uniform4fv(this.u.uFlag, flat(SCENE.flags));
-    this.bufs = { boats: new Float32Array(24), lights: new Float32Array(16), gulls: new Float32Array(24) };
+    gl.uniform4fv(this.u.uSheepBox, flat(SCENE.sheep.map(s => s.body)));
+    gl.uniform4fv(this.u.uSheepHead, flat(SCENE.sheep.map(s => s.head)));
+    this.bufs = { boats: new Float32Array(24), lights: new Float32Array(16), gulls: new Float32Array(24), gullDirs: new Float32Array(12) };
     gl.viewport(0, 0, this.MAP[0], this.MAP[1]);
     let n = 0;
-    const done = () => { if (++n === 2) { this.ready = true; if (this.on) this.start(); } };
-    const load = (map, water) => { this.texture(0, map, done); this.texture(1, water, done); };
+    const done = () => { if (++n === 4) { this.ready = true; if (this.on) this.start(); } };
+    const load = (map, water) => {
+      this.texture(0, map, done); this.texture(1, water, done);
+      const local = location.protocol === "file:";
+      this.texture(2, local ? SCENERY_PATCHES.forge : "img/forge-clean-patch.webp", done);
+      this.texture(3, local ? SCENERY_PATCHES.mill : "img/mill-clean-patch.webp", done);
+    };
     if (location.protocol === "file:") {
       // opened from the disk: the pictures come built into a script, since WebGL may not use the files
       const s = document.createElement("script");
@@ -331,6 +345,10 @@ const Scenery = {
     SCENE.gulls.forEach((g, i) => {
       const len = Math.hypot(g[2], g[3]), d = (t * g[4] + g[6]) % g[5];
       const x = g[0] + g[2] / len * d, y = g[1] + g[3] / len * d + 9 * Math.sin(t * 0.45 + i * 1.7);
+      // Include the vertical meander's derivative, so the bird faces its actual velocity.
+      const vx = g[2] / len * g[4], vy = g[3] / len * g[4] + 4.05 * Math.cos(t * 0.45 + i * 1.7);
+      const speed = Math.hypot(vx, vy);
+      B.gullDirs.set([vx / speed, vy / speed], i * 2);
       const glide = Math.min(1, Math.max(0, 0.5 + 1.6 * Math.sin(t * 0.7 + i * 1.3)));
       const on = x > -30 && x < this.MAP[0] + 30 && y > -30 && y < this.MAP[1] + 30;
       B.gulls.set([x, y, Math.sin(t * 9 + i * 2.1) * glide, on ? g[7] : 0], i * 4);
@@ -339,6 +357,7 @@ const Scenery = {
     gl.uniform4fv(this.u.uBoatPiv, B.boats);
     gl.uniform4fv(this.u.uLight, B.lights);
     gl.uniform4fv(this.u.uGull, B.gulls);
+    gl.uniform2fv(this.u.uGullDir, B.gullDirs);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     Folk.draw(t);
   }
@@ -355,10 +374,12 @@ precision highp float;
 #else
 precision mediump float;
 #endif
-uniform sampler2D uMap, uWater;
+uniform sampler2D uMap, uWater, uForgePatch, uMillPatch;
 uniform float uTime;
 uniform vec2 uRes;
 uniform vec4 uChim[2], uBoatBox[6], uBoatPiv[6], uFall[4], uLight[4], uFlag[4], uGull[6];
+uniform vec2 uGullDir[6];
+uniform vec4 uSheepBox[2], uSheepHead[2];
 varying vec2 vUv;
 
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -381,7 +402,10 @@ float gull(vec2 q, float beat, float s) {
   float h2 = clamp(dot(qe, te) / dot(te, te), 0.0, 1.0);
   float d2 = length(qe - te * h2) - mix(1.2, 0.25, h2) * k;
   float d3 = length(q * vec2(1.0, 0.62)) - 1.7 * k;
-  return min(min(d1, d2), d3);
+  // The head and beak point towards local negative y.
+  float head = length(q - vec2(0.0, -2.2 * k)) - 0.8 * k;
+  float beak = seg(q, vec2(0.0, -2.6 * k), vec2(0.0, -3.7 * k)) - 0.22 * k;
+  return min(min(min(d1, d2), d3), min(head, beak));
 }
 
 void main() {
@@ -409,6 +433,21 @@ void main() {
       off.x += k * edge * 1.4 * sin((p.y - f.y) * 0.35 - t * 5.5 + float(i) * 1.7);
     }
   }
+  // Gentle grazing: a head dips while planted feet and the surrounding field stay still.
+  // Different phases and periods avoid a synchronised flock.
+  for (int i = 0; i < 2; i++) {
+    vec4 body = uSheepBox[i], head = uSheepHead[i];
+    vec2 q = (p - body.xy) / body.zw;
+    if (abs(q.x) < 1.0 && abs(q.y) < 1.0) {
+      float phase = t * (0.72 + float(i) * 0.13) + head.w;
+      float graze = pow(max(0.0, sin(phase)), 2.0);
+      float edge = (1.0 - smoothstep(0.6, 1.0, abs(q.x))) * (1.0 - smoothstep(0.6, 1.0, abs(q.y)));
+      vec2 h = (p - head.xy) / head.z;
+      float headMask = exp(-dot(h, h));
+      off.x += edge * (0.28 * sin(phase * 0.63) + 0.25 * headMask * graze);
+      off.y += edge * (-1.15 * headMask * graze + 0.12 * sin(phase * 1.7));
+    }
+  }
   vec2 at = p + off;
   vec3 wt = texture2D(uWater, at / uRes).rgb;
   float w = wt.r, fount = wt.b;
@@ -422,6 +461,39 @@ void main() {
     d *= 4.2 * w * (1.0 - 0.7 * fount);
   }
   vec3 col = texture2D(uMap, (at + d) / uRes).rgb;
+
+  // Clean local artwork is used only on this animated canvas. Feathered borders
+  // join the untouched map; hiding the canvas restores its original smoke and sails.
+  vec2 forgeUv = (p - vec2(820.0, 205.0)) / vec2(160.0, 130.0);
+  if (forgeUv.x > 0.0 && forgeUv.x < 1.0 && forgeUv.y > 0.0 && forgeUv.y < 1.0) {
+    vec2 edge = min(forgeUv, 1.0 - forgeUv) * vec2(160.0, 130.0);
+    col = mix(col, texture2D(uForgePatch, forgeUv).rgb, smoothstep(0.0, 6.0, min(edge.x, edge.y)));
+  }
+  vec2 millUv = (p - vec2(470.0, 170.0)) / vec2(105.0, 110.0);
+  if (millUv.x > 0.0 && millUv.x < 1.0 && millUv.y > 0.0 && millUv.y < 1.0) {
+    vec2 edge = min(millUv, 1.0 - millUv) * vec2(105.0, 110.0);
+    col = mix(col, texture2D(uMillPatch, millUv).rgb, smoothstep(0.0, 6.0, min(edge.x, edge.y)));
+  }
+
+  // Four cream cloth sails on timber frames, rotating in the mill's angled face.
+  vec2 mq = (p - vec2(523.0, 227.0)) / vec2(0.78, 1.0);
+  if (length(mq) < 30.0) {
+    float angle = t * 6.2831853 / 24.0 + 0.2;
+    vec2 r = vec2(cos(angle) * mq.x + sin(angle) * mq.y, -sin(angle) * mq.x + cos(angle) * mq.y);
+    for (int i = 0; i < 4; i++) {
+      float arm = seg(r, vec2(0.0), vec2(0.0, -28.0)) - 0.6;
+      col = mix(col, vec3(0.30, 0.23, 0.14), 1.0 - smoothstep(-0.2, 0.65, arm));
+      vec2 box = abs(r - vec2(2.5, -17.0)) - vec2(2.5, 10.0);
+      float blade = max(box.x, box.y);
+      float frame = max(1.0 - smoothstep(0.5, 1.1, -blade), 1.0 - smoothstep(0.25, 0.65, abs(mod(r.y + 27.0, 5.0) - 2.5)));
+      vec3 cloth = vec3(0.83, 0.77, 0.60) * (1.0 - 0.08 * mq.y / 28.0);
+      vec3 sail = mix(cloth, vec3(0.37, 0.29, 0.18), frame * 0.65);
+      col = mix(col, sail, 1.0 - smoothstep(-0.25, 0.6, blade));
+      r = vec2(-r.y, r.x);
+    }
+    float hub = 1.0 - smoothstep(1.4, 2.2, length(mq));
+    col = mix(col, vec3(0.36, 0.26, 0.16) + 0.1 * max(0.0, -mq.y) , hub);
+  }
 
   if (w > 0.01) {
     // short glints along the wave crests, where two wave patterns meet
@@ -495,18 +567,20 @@ void main() {
     col = mix(col, vec3(0.88, 0.91, 0.95), smoothstep(0.5, 0.8, m) * (1.0 - smoothstep(70.0, 190.0, p.y)) * 0.45);
   }
 
-  // smoke from the chimneys: puffs rising and leaning with the wind, as the painted smoke does
+  // Smoke rises over the clean forge patch, without a stationary plume underneath.
   for (int i = 0; i < 2; i++) {
     vec4 ch = uChim[i];
     vec2 s = p - ch.xy;
     float h = -s.y;
     if (h > -8.0 && h < ch.z && abs(s.x) < ch.z) {
-      float x = s.x - h * 0.7 - 3.0 * sin(h * 0.05 - t * 1.3 + float(i) * 2.0);
-      float wd = 4.5 + h * 0.22;
+      float x = s.x - h * 0.7 - 3.0 * smoothstep(0.0, 24.0, h) * sin(h * 0.05 - t * 1.3 + float(i) * 2.0);
+      float wd = i == 0 ? 6.0 + h * 0.20 : 4.0 + h * 0.22;
       float core = exp(-x * x / (wd * wd));
-      float fade = smoothstep(-6.0, 4.0, h) * (1.0 - smoothstep(ch.z * 0.42, ch.z, h));
+      float fade = smoothstep(-1.0, 3.0, h) * (1.0 - smoothstep(ch.z * 0.42, ch.z, h));
       float puff = fbm(vec2(x * 0.07 + float(i) * 7.0, (h - t * 16.0) * 0.06));
-      col = mix(col, vec3(0.93, 0.92, 0.9), clamp(core * fade * smoothstep(0.28, 0.66, puff) * ch.w, 0.0, 0.85));
+      float density = mix(0.72, smoothstep(0.28, 0.66, puff), smoothstep(0.0, 30.0, h));
+      if (i == 0) density = 0.25 + 0.75 * density; // fuller forge plume; pub density stays unchanged
+      col = mix(col, vec3(0.93, 0.92, 0.9), clamp(core * fade * density * ch.w, 0.0, 0.85));
     }
   }
 
@@ -515,12 +589,15 @@ void main() {
     vec4 g = uGull[i];
     if (g.w > 0.0) {
       vec2 q = p - g.xy, qs = q - vec2(9.0, 24.0);
-      if (abs(qs.x) < g.w + 4.0 && abs(qs.y) < g.w + 4.0) col *= 1.0 - 0.28 * (1.0 - smoothstep(-0.5, 1.5, gull(qs, g.z, g.w)));
+      vec2 forward = uGullDir[i], side = vec2(-forward.y, forward.x);
+      vec2 bird = vec2(dot(q, side), -dot(q, forward));
+      vec2 shadow = vec2(dot(qs, side), -dot(qs, forward));
+      if (abs(qs.x) < g.w + 4.0 && abs(qs.y) < g.w + 4.0) col *= 1.0 - 0.28 * (1.0 - smoothstep(-0.5, 1.5, gull(shadow, g.z, g.w)));
       if (abs(q.x) < g.w + 3.0 && abs(q.y) < g.w + 3.0) {
-        float dg = gull(q, g.z, g.w);
+        float dg = gull(bird, g.z, g.w);
         col = mix(col, vec3(0.2, 0.18, 0.17), (1.0 - smoothstep(0.2, 1.0, dg)) * 0.7);
         // white above, a touch of grey towards the wing tips
-        vec3 plume = mix(vec3(0.99, 0.99, 0.97), vec3(0.72, 0.74, 0.78), smoothstep(0.55, 1.0, abs(q.x) / g.w));
+        vec3 plume = mix(vec3(0.99, 0.99, 0.97), vec3(0.72, 0.74, 0.78), smoothstep(0.55, 1.0, abs(bird.x) / g.w));
         col = mix(col, plume, 1.0 - smoothstep(-0.45, 0.3, dg));
       }
     }
