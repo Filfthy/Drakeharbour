@@ -18,4 +18,4 @@ Parchment, wood and leather textures generated for the game (tools/make-textures
 
 Music and sound effects written for the game and synthesised in the browser (river-music.js).
 
-Additional countryside panorama generated with OpenAI image generation (art/town-map-wide-v2.png); the original playable town is retained at the centre.
+Additional countryside panorama generated with OpenAI image generation (art/town-map-wide-v3.png); the original playable town is retained at the centre.

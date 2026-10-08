@@ -834,13 +834,24 @@ b.who::before { content: ""; display: inline-block; width: 0.62em; height: 0.62e
 /* Reveal the painted countryside outside the original table on wider windows.
    The original 1600px map, its water shader, townsfolk, and town hit targets stay aligned.
    Very extreme ratios retain the soft backdrop beyond the panorama's natural extent. */
+/* Measured against the actual generated painting, rather than its requested inset.
+   Match the original map rectangle's scale and centre; allow a small horizontal expansion
+   only at extreme window widths so the image still reaches both outer edges. */
+#stage.wide-scene {
+  --panorama-width: max(3065.59px, calc(var(--scene-width) * 1.046));
+  --panorama-height: 1021.86px;
+  --panorama-x: calc(var(--panorama-width) * 0.021727);
+  --panorama-y: -18.35px;
+}
 #stage.wide-scene #map::before {
   content: ""; position: absolute; left: 50%; top: 50%;
   width: var(--scene-width); height: calc(1600px * 941 / 1672);
   transform: translate(-50%, -50%); pointer-events: none;
-  background: url("img/map-wide-v2.webp") center / auto calc(1600px * 941 / 1672 / 0.75) no-repeat;
-  -webkit-mask-image: linear-gradient(to right, #000 calc(50% - 790px), transparent calc(50% - 710px), transparent calc(50% + 710px), #000 calc(50% + 790px));
-  mask-image: linear-gradient(to right, #000 calc(50% - 790px), transparent calc(50% - 710px), transparent calc(50% + 710px), #000 calc(50% + 790px));
+  background: url("img/map-wide-v3.webp") no-repeat;
+  background-size: var(--panorama-width) var(--panorama-height);
+  background-position: calc(50% + var(--panorama-x)) calc(50% + var(--panorama-y));
+  -webkit-mask-image: linear-gradient(to right, #000 calc(50% - 790px), transparent calc(50% - 625px), transparent calc(50% + 625px), #000 calc(50% + 790px));
+  mask-image: linear-gradient(to right, #000 calc(50% - 790px), transparent calc(50% - 625px), transparent calc(50% + 625px), #000 calc(50% + 790px));
 }
 #stage.wide-scene #map::after {
   left: 50%; right: auto; width: var(--scene-width); transform: translateX(-50%);
@@ -848,20 +859,31 @@ b.who::before { content: ""; display: inline-block; width: 0.62em; height: 0.62e
 #stage.wide-scene #title { overflow: visible; background: transparent; }
 #stage.wide-scene #title .t-art {
   left: 50%; right: auto; width: var(--scene-width); margin-left: calc(var(--scene-width) / -2);
-  background-image: url("img/map-wide-v2.webp");
-  background-size: auto calc(1600px * 941 / 1672 / 0.75);
+  background-image: url("img/map-wide-v3.webp");
+  background-size: var(--panorama-width) var(--panorama-height);
+  background-position: calc(50% + var(--panorama-x)) calc(50% + var(--panorama-y));
   transform-origin: 50% 46%;
 }
 /* Retain the original painting at the centre, blending only its peripheral edges. */
 #stage.wide-scene #title .t-art::after {
   content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1600px;
   transform: translateX(-50%); background: url("img/map.webp") center / cover no-repeat;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 90px, #000 calc(100% - 90px), transparent);
-  mask-image: linear-gradient(to right, transparent, #000 90px, #000 calc(100% - 90px), transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 175px, #000 calc(100% - 175px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 175px, #000 calc(100% - 175px), transparent);
 }
 #stage.wide-scene #title::before {
   left: 50%; right: auto; width: var(--scene-width); transform: translateX(-50%);
 }
 @media (prefers-reduced-motion: reduce) {
   #title .t-art { animation: none; }
+}
+
+/* The water shader paints the whole original map, so its opaque canvas must
+   share the painting's edge blend. Otherwise it hides the countryside transition. */
+#stage.wide-scene #mapfx, #stage.wide-scene #mapfolk {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 175px, #000 calc(100% - 175px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 175px, #000 calc(100% - 175px), transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  #stage.fx-on.titled #map { animation: none; }
 }
