@@ -31,6 +31,7 @@ const FOUNTAIN = [844, 469];   // the middle of the Square
 const PIE = { rx: 290, ry: 175, inner: 0.215 };
 const FLY = 340;   // ms for a card to cross the table
 let SPEED = 1;     // the player's choice: 1 normal, 0.55 fast (every movement and pause scales by it)
+const GAME_URL = "https://bug-victim.itch.io/drakeharbour";
 const SAVE_VERSION = 2;   // bump when the rules change, so an old save isn't carried on under new rules
 // What a game in progress is saved as, so a refresh can carry on.
 const SAVE_KEYS = ["o", "deck", "discard", "charterDeck", "display", "charters", "nextCharter", "qdeck", "qrow", "sealedDeck", "eventDeck", "event", "players", "turn", "round", "turnCount", "over", "endTriggered", "t", "stats"];
@@ -293,6 +294,8 @@ class App {
     document.addEventListener("fullscreenchange", () => this.fullUi());
     document.addEventListener("webkitfullscreenchange", () => this.fullUi());
     window.addEventListener("resize", () => this.fit());
+    $("nightlights").innerHTML = SCENE.lights.map(([x, y, r]) =>
+      `<i style="left:${x * MAP_K}px;top:${y * MAP_K}px;width:${r * 4}px;height:${r * 4}px"></i>`).join("");
     this.fit();
     this.setFs(this.fs);
     this.setPanels(this.panels);
@@ -444,6 +447,7 @@ class App {
     P.classList.remove("end");
     P.classList.toggle("narrow", cls === "narrow");
     P.classList.toggle("wide", cls === "wide");
+    P.classList.toggle("games-panel", cls === "games");
     document.querySelectorAll(".hint-glow").forEach(e => e.remove());
     P.innerHTML = h;
     P.style.transform = "";
@@ -457,16 +461,17 @@ class App {
   // ------------------------------------------------------------ the start screen, a new game, the settings
   // The start screen covers the table. Starting or carrying on a game fills the screen, unless Settings says not to.
   showTitle() {
+    this.cancelNight();
     this.closePanel();
     this.toggleMixer(false);
     if (!this.g) $("stage").classList.add("idle");
     const live = this.g && !this.g.over, s0 = !live && load("save", null), saved = s0 && s0.v === SAVE_VERSION ? s0 : null;
-    const first = live ? `<button class="btn big" id="b-resume">Resume</button>` : saved ? `<button class="btn big" id="b-continue">Continue<small>${this.savedLine(saved)}</small></button>` : "";
-    $("title-menu").innerHTML = `${first}<button class="btn big${first ? " parch" : ""}" id="b-new">New game</button>
+    const first = live ? `<button class="btn big parch" id="b-resume">Resume</button>` : saved ? `<button class="btn big parch" id="b-continue">Continue<small>${this.savedLine(saved)}</small></button>` : "";
+    $("title-menu").innerHTML = `${first}<button class="btn big parch" id="b-new">New game</button>
       <button class="btn big parch" id="b-tut">Tutorial</button><button class="btn big parch" id="b-settings">Settings</button>
-      <div class="t-row"><button class="btn dark" id="b-rules">Rules</button><button class="btn dark" id="b-credits">Credits</button></div>
+      <div class="t-row"><button class="btn parch" id="b-rules">Rules</button><button class="btn parch" id="b-credits">Credits</button><button class="btn parch" id="b-more-games">More card games</button></div>
       <div id="title-tip"></div>`;
-    $("title-foot").innerHTML = `${this.recordLine()}<div>© BugVictim 2026</div>`;
+    $("title-foot").innerHTML = `${this.recordLine()}<div class="t-maker"><img src="img/bugvictim-scroll-v2.webp" alt="© BugVictim 2026" width="2169" height="725"></div>`;
     // a tip under the menu, a different one each visit; a click shows the next
     const tip = $("title-tip");
     let ti = Math.floor(Math.random() * TITLE_TIPS.length);
@@ -481,6 +486,12 @@ class App {
     $("b-settings").onclick = () => this.showSettings();
     $("b-rules").onclick = () => this.showRules(() => this.closePanel());
     $("b-credits").onclick = () => this.showCredits();
+    $("b-more-games").onclick = () => this.showMoreGames();
+    $("b-share").onclick = () => this.shareGame();
+    $("b-copy-link").onclick = () => this.copyGameLink();
+    $("share-status").textContent = "";
+    $("b-copy-link").textContent = "Copy link";
+    $("share-link").hidden = true;
     $("stage").classList.add("titled");
     $("title").classList.remove("hidden");
   }
@@ -638,6 +649,52 @@ class App {
     $("b-back").onclick = back;
   }
 
+  async shareGame() {
+    $("share-status").textContent = "";
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Drakeharbour Syndicates", text: "Charters, quests and cards in a guild town. Play Drakeharbour Syndicates.", url: GAME_URL });
+        return;
+      } catch (error) {
+        if (error.name === "AbortError") return;
+      }
+    }
+    await this.copyGameLink();
+  }
+
+  async copyGameLink() {
+    try {
+      await navigator.clipboard.writeText(GAME_URL);
+      $("share-link").hidden = true;
+      $("share-status").textContent = "Link copied. Share it with a friend!";
+      $("b-copy-link").textContent = "Copied!";
+    } catch (error) {
+      const link = $("share-link");
+      link.value = GAME_URL;
+      link.hidden = false;
+      link.focus();
+      link.select();
+      $("share-status").textContent = "Copy the link above to share.";
+    }
+  }
+
+  showMoreGames() {
+    const games = [
+      { key: "artifact", devices: "Mobile & desktop", title: "Artifact", description: "Tactical space rummy. Collect planet cards and steer a probe to discover alien artifacts, playing against up to three computer opponents." },
+      { key: "oh-hell-extended", devices: "Mobile & desktop", title: "Oh Hell! Extended", description: "Bid your tricks, then win exactly that many. Play classic Oh Hell or add Suns, Moons, Dragons and Jokers, against up to four computer opponents." },
+      { key: "german-whist", devices: "Desktop", image: "german-whist-v2", title: "German Whist", description: "Build your hand, then battle for tricks in this classic two-player card game. Choose from three computer skill levels." }
+    ];
+    this.panel(`<h2>More card games</h2><p class="games-intro">Other games by BugVictim.</p>
+      <div class="other-games">${games.map(game => `<article class="other-game">
+        <div class="game-picture ${game.key}"><img src="img/more-games-${game.image || game.key}.webp" alt="${game.title} artwork"></div>
+        <h3>${game.title}</h3><span class="game-devices">${game.devices}</span><p>${game.description}</p>
+        <a class="btn parch" href="https://bug-victim.itch.io/${game.key}" target="_blank" rel="noopener noreferrer" aria-label="Play ${game.title} on itch.io (opens in a new tab)">Play on itch.io</a>
+      </article>`).join("")}</div>
+      <p class="games-share">Please share with your friends if you enjoy.</p>
+      <div class="games-bottom"><small>Links open in a new tab.</small><button class="btn parch" id="b-back">Back</button></div>`, "", "games");
+    $("b-back").onclick = () => this.closePanel();
+  }
+
   showCredits() {
     this.panel(`<h2>Credits</h2>
       <p class="credits">Icons from <b>game-icons.net</b> by Lorc, Delapouite, Faithtoken and Quoting, licensed under CC BY 3.0.</p>
@@ -765,6 +822,7 @@ class App {
     this.events = [];
     this.aiSays = null;
     this.shownEvent = null;
+    this.cancelNight();
     this.clearAnnounce();
     this.sel.clear();
     this.fresh.clear();
@@ -835,7 +893,7 @@ class App {
     const wrap = (fn, describe) => {
       const orig = RiverGame.prototype[fn];
       g[fn] = function (...a) {
-        const pre = { turn: g.turn, ended: g.endTriggered, ap: g.t ? g.t.ap : 0, pl: g.players.map(x => ({ res: x.res.slice(), hand: x.hand.slice(), quests: x.quests.slice(), pos: x.pos, personal: x.personal })), charters: g.charters.map(ch => ({ id: ch.id, owner: ch.owner, def: ch.def, cards: ch.cards.slice() })) };
+        const pre = { turn: g.turn, round: g.round, ended: g.endTriggered, ap: g.t ? g.t.ap : 0, pl: g.players.map(x => ({ res: x.res.slice(), hand: x.hand.slice(), quests: x.quests.slice(), pos: x.pos, personal: x.personal })), charters: g.charters.map(ch => ({ id: ch.id, owner: ch.owner, def: ch.def, cards: ch.cards.slice() })) };
         const r = orig.apply(g, a);
         const texts = [].concat(describe(pre, a, r) || []);
         for (const ch of g.starved || []) texts.push(`<span class="faint">The deck ran out: ${whose(ch.owner)} <i>${ch.def.name}</i> lapsed, and its cards were shuffled in.</span>`);
@@ -1149,6 +1207,11 @@ class App {
     const g = this.g;
     while (this.events.length) {
       const e = this.events.shift();
+      // Finish the old day before rendering the new event, rent, and refreshed Tavern.
+      if (e.fn === "endTurn" && e.snap.round > e.pre.round && !e.snap.over) {
+        await this.passNight(g);
+        if (this.g !== g) return;
+      }
       Sfx.dim = e.p !== 0;
       const m = this.mergeable(e), L = this.lastMerge;
       if (m && L && L.key === m.key && this.lines[this.lines.length - 1] === L.line) {
@@ -1182,6 +1245,37 @@ class App {
     this.view = null;
     this.playing = false;
     this.render();
+  }
+
+  // A short night between rounds. Only the scenery is tinted; the table stays readable.
+  async passNight(g) {
+    if (this.tut || this.titleUp() || document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    this.cancelNight();
+    const timing = { duration: 3200 * SPEED, easing: "linear" };
+    const animations = [
+      $("nightfall").animate([
+        { offset: 0, opacity: 0, backgroundColor: "#d68340" },
+        { offset: 0.2, opacity: 0.25, backgroundColor: "#9f504c" },
+        { offset: 0.42, opacity: 0.72, backgroundColor: "#0a1635" },
+        { offset: 0.58, opacity: 0.72, backgroundColor: "#0a1635" },
+        { offset: 0.8, opacity: 0.2, backgroundColor: "#e7b271" },
+        { offset: 1, opacity: 0, backgroundColor: "#e7b271" }
+      ], timing),
+      $("nightlights").animate([
+        { offset: 0, opacity: 0 }, { offset: 0.25, opacity: 0.15 },
+        { offset: 0.42, opacity: 1 }, { offset: 0.58, opacity: 1 },
+        { offset: 0.8, opacity: 0.2 }, { offset: 1, opacity: 0 }
+      ], timing)
+    ];
+    this.nightAnimations = animations;
+    $("stage").classList.add("night-passing");
+    try { await Promise.all(animations.map(a => a.finished.catch(() => {}))); }
+    finally { if (this.nightAnimations === animations) this.cancelNight(); }
+  }
+  cancelNight() {
+    for (const a of this.nightAnimations || []) a.cancel();
+    this.nightAnimations = null;
+    $("stage").classList.remove("night-passing");
   }
 
   async nextTurn() {

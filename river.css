@@ -765,23 +765,23 @@ b.who::before { content: ""; display: inline-block; width: 0.62em; height: 0.62e
   background: radial-gradient(ellipse 58% 72% at 50% 44%, rgba(12, 7, 3, 0.12), rgba(12, 7, 3, 0.8)), linear-gradient(180deg, rgba(12, 7, 3, 0.4), rgba(12, 7, 3, 0) 36%, rgba(12, 7, 3, 0.45)); }
 @keyframes titledrift { to { transform: scale(1.09); } }
 #title .t-logo, #title-menu, #title-foot { position: relative; z-index: 2; }
-#title .t-logo { margin-top: 44px; text-align: center; }
+#title .t-logo { margin-top: 34px; text-align: center; }
 #title .t-mark { display: block; width: 660px; margin: 0 auto; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.75)); }
 /* a dusk behind the logo, so the small words under it read against the busy town */
 #title .t-logo::before { content: ""; position: absolute; left: 50%; top: 58%; width: 980px; height: 400px; transform: translate(-50%, -50%); z-index: -1;
   background: radial-gradient(closest-side, rgba(12, 7, 3, 0.72), rgba(12, 7, 3, 0.45) 55%, rgba(12, 7, 3, 0)); }
 #title .t-sub { margin-top: 4px; font-style: italic; font-size: 24px; color: var(--cream); text-shadow: 0 2px 6px #000, 0 0 14px rgba(0, 0, 0, 0.8); }
-#title-menu { margin-top: 30px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+#title-menu { margin-top: 26px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 #title-menu .btn.big { width: 360px; padding: 12px 0 11px; font-size: 22px; letter-spacing: 0.14em; border-radius: 10px; }
 #title-menu .btn.big small { display: block; margin-top: 3px; font-family: var(--serif); font-size: 14px; font-weight: 400; font-style: italic; letter-spacing: 0; text-transform: none; color: #4a2e0c; }
 #title-menu .t-row { display: flex; gap: 14px; margin-top: 2px; }
 #title-menu .t-row .btn { width: 173px; padding: 8px 0; font-size: 17px; letter-spacing: 0.1em; }
-#title-tip { margin-top: 22px; max-width: 620px; text-align: center; font-style: italic; font-size: calc(17px * var(--fs)); line-height: 1.35; color: var(--cream); cursor: pointer;
+#title-tip { margin-top: 14px; max-width: 680px; text-align: center; font-style: italic; font-size: calc(17px * var(--fs)); line-height: 1.35; color: var(--cream); cursor: pointer;
   text-shadow: 0 0 2px #120a04, 0 0 2px #120a04, 0 1px 4px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 0, 0, 0.7); }
 #title-tip b { font-style: normal; font-family: var(--display); letter-spacing: 0.08em; color: var(--gold-hi); }
 #title-tip .more { font-style: normal; color: var(--gold-hi); margin-left: 4px; }
-#title-foot { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; font-size: 15px; color: var(--cream-dim); text-shadow: 0 1px 3px #000, 0 0 8px rgba(0, 0, 0, 0.8); }
-#title-foot .record { margin: 0 0 4px; font-size: 16px; font-style: italic; }
+#title-foot { position: absolute; left: 0; right: 0; bottom: 12px; text-align: center; font-size: 15px; color: var(--cream-dim); text-shadow: 0 1px 3px #000, 0 0 8px rgba(0, 0, 0, 0.8); }
+#title-foot .record { margin: 0 0 8px; font-size: 16px; font-style: italic; }
 /* on the start screen only the corner's icon buttons stay */
 #stage.titled #menu .ingame { display: none; }
 #panel.narrow { width: 540px; }
@@ -887,3 +887,87 @@ b.who::before { content: ""; display: inline-block; width: 0.62em; height: 0.62e
 @media (prefers-reduced-motion: reduce) {
   #stage.fx-on.titled #map { animation: none; }
 }
+
+/* Between rounds: dusk, a brief blue night, then dawn across the whole landscape. */
+#map { isolation: isolate; }
+#nightfall {
+  position: absolute; left: 50%; top: 0; width: var(--scene-width, 1600px); height: 900px;
+  transform: translateX(-50%); z-index: 1; pointer-events: none; opacity: 0;
+  background: #0a1635; mix-blend-mode: multiply;
+}
+#nightlights {
+  position: absolute; left: 0; top: 50%; width: 1600px; height: calc(1600px * 941 / 1672);
+  transform: translateY(-50%); z-index: 2; pointer-events: none; opacity: 0;
+}
+#nightlights i {
+  position: absolute; transform: translate(-50%, -50%); border-radius: 50%;
+  background: radial-gradient(circle, #fff0b6 0%, #ffcc66 8%, rgba(255, 157, 42, 0.7) 22%, rgba(255, 139, 29, 0.18) 48%, transparent 72%);
+  mix-blend-mode: screen;
+}
+
+/* Approved parchment scroll, with its maker's seal and copyright built into the artwork. */
+#title .t-maker { position: relative; width: 360px; height: 90px; margin: 0 auto; }
+#title .t-maker img { position: absolute; left: 0; top: -13px; display: block; width: 360px; height: auto;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .55)); }
+
+#title .t-version { position: absolute; right: 12px; bottom: 9px; z-index: 2;
+  font-family: var(--serif); font-size: 11px; line-height: 1; color: #fff;
+  -webkit-text-stroke: .35px #000; paint-order: stroke fill;
+  text-shadow: -1px 0 #000, 1px 0 #000, 0 -1px #000, 0 1px #000; }
+
+/* Other BugVictim card games, presented on the same parchment as the menus. */
+#title-menu .t-row #b-more-games { width: 212px; font-size: 15px; letter-spacing: .06em; }
+#panel.games-panel { width: 1040px; }
+#panel .games-intro { margin: 0 0 18px; font-style: italic; }
+#panel .other-games { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+#panel .other-game { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+#panel .game-picture { width: 100%; aspect-ratio: 630 / 500; background: #071b10; border: 1px solid #644321;
+  box-shadow: 0 3px 7px rgba(55, 28, 7, .3); overflow: hidden; }
+#panel .game-picture.artifact { background: #000; }
+#panel .game-picture img { display: block; width: 100%; height: 100%; object-fit: contain; }
+#panel .other-game h3 { margin: 14px 0 5px; }
+#panel .other-game p { margin: 0 0 16px; font-size: calc(16px * var(--fs)); line-height: 1.4; }
+#panel .other-game .btn { margin-top: auto; text-decoration: none; text-align: center; }
+#panel .other-game .btn:focus-visible { outline: 3px solid #5a1712; outline-offset: 3px; }
+#panel .games-bottom { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 22px; }
+#panel .games-bottom small { font-size: calc(13px * var(--fs)); color: var(--ink-soft); }
+
+#panel .games-share { margin: 20px 0 0; text-align: center; font-style: italic; }
+
+/* Compact sharing controls occupy the gap beneath the tips. */
+#title-share { position: relative; z-index: 2; width: 680px; margin-top: 6px; padding: 0;
+  display: grid; grid-template-columns: auto auto; justify-content: center; column-gap: 14px; row-gap: 4px; flex-shrink: 0;
+  background: transparent; border: none; box-shadow: none; color: #fff; font-family: Arial, sans-serif; }
+#title-share h3 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+#title-share p { margin: 0; align-self: center; text-align: right; font: 14px/1.35 Arial, sans-serif; color: #eef3f6; text-shadow: 0 1px 3px #000; }
+#title-share .share-buttons { grid-column: 2; grid-row: 1; align-self: center; display: flex; gap: 8px; }
+#title-share .share-action { padding: 8px 12px; border: 1px solid rgba(225, 241, 250, .65); border-radius: 6px;
+  background: rgba(197, 229, 245, .28); color: #fff; font: 600 14px/1 Arial, sans-serif; cursor: pointer;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .8); }
+#title-share .share-action.secondary { background: rgba(197, 229, 245, .28); border-color: rgba(225, 241, 250, .65); }
+#title-share .share-action:hover { background: rgba(197, 229, 245, .45); }
+#title-share .share-action:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+#share-status { grid-column: 1 / -1; text-align: center; font: 12px/1.2 Arial, sans-serif; color: #eef3f6; text-shadow: 0 1px 3px #000; }
+#share-status:empty { display: none; }
+#share-link { grid-column: 1 / -1; width: 100%; margin-top: 4px; padding: 5px; font: 12px Arial, sans-serif;
+  color: #fff; background: rgba(15, 30, 39, .65); border: 1px solid #82949e; border-radius: 4px; }
+#share-link[hidden] { display: none; }
+#panel .game-devices { display: inline-block; margin: 0 0 9px; padding: 3px 7px; border: 1px solid rgba(93, 65, 38, .45);
+  border-radius: 3px; color: var(--ink-soft); background: rgba(255, 248, 220, .35); font-size: calc(12px * var(--fs)); }
+
+/* Keep the full-sized parchment buttons; sharing adds no panel or footer height. */
+#title .t-logo { margin-top: 14px; }
+#title .t-mark { width: 560px; }
+#share-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+#share-link { position: absolute; left: 0; bottom: 38px; margin: 0; }
+
+/* Centre the sharing cartouche in the remaining space between tips and the record. */
+#title .t-logo, #title-menu { flex-shrink: 0; }
+#title-sharing-space { position: relative; z-index: 2; flex: 1; min-height: 0; width: 100%; display: flex;
+  align-items: center; justify-content: center; }
+#title-share { width: max-content; max-width: 760px; margin: 0; padding: 4px 14px;
+  border: 1.5px solid rgba(255, 255, 255, .95); border-radius: 9px; background: transparent;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, .35); }
+#title-share p { font-size: 17px; color: #fff; }
+#title-share .share-action { font-size: 16px; padding: 6px 12px; }
+#title-foot { position: relative; left: auto; right: auto; bottom: auto; width: 100%; flex-shrink: 0; margin-bottom: 12px; }

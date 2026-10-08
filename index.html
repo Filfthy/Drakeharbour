@@ -9,13 +9,13 @@
 <link rel="preload" href="img/map-wide-v3.webp" as="image" media="(min-aspect-ratio: 16/9)">
 <link rel="preload" href="img/logo.webp" as="image">
 <link rel="preload" href="img/cardback.webp" as="image">
-<link rel="stylesheet" href="river.css?v=206">
+<link rel="stylesheet" href="river.css?v=220">
 <link rel="stylesheet" href="icons.css?v=203">
 </head>
 <body>
 <div id="backdrop"></div>
 <div id="stage">
-  <div id="map"><canvas id="mapfx"></canvas><canvas id="mapfolk"></canvas></div>
+  <div id="map"><canvas id="mapfx"></canvas><canvas id="mapfolk"></canvas><div id="nightfall" aria-hidden="true"></div><div id="nightlights" aria-hidden="true"></div></div>
   <div id="notice" class="parchment"></div>
   <div id="proclaim" class="parchment"></div>
   <div id="yourturn"></div>
@@ -66,7 +66,17 @@
       <div class="t-sub">charters, quests and cards in a guild town</div>
     </div>
     <nav id="title-menu"></nav>
+    <div id="title-sharing-space">
+    <section id="title-share" aria-labelledby="share-heading">
+      <h3 id="share-heading">Share Drakeharbour</h3>
+      <p>Please share with your friends if you enjoy.</p>
+      <div class="share-buttons"><button class="share-action" id="b-share">Share</button><button class="share-action secondary" id="b-copy-link">Copy link</button></div>
+      <input id="share-link" type="url" readonly aria-label="Game link to copy" hidden>
+      <div id="share-status" role="status" aria-live="polite"></div>
+    </section>
+    </div>
     <div id="title-foot"></div>
+    <span class="t-version">v1.1</span>
   </div>
   <div id="coach" class="parchment"></div>
   <div id="overlay" class="hidden"><div id="panel" class="parchment"></div></div>
@@ -78,6 +88,6 @@
 <script src="river-tutorial.js?v=203"></script>
 <script src="folk-sheet.js?v=203"></script>
 <script src="river-scenery.js?v=203"></script>
-<script src="river-app.js?v=205"></script>
+<script src="river-app.js?v=218"></script>
 </body>
 </html>
