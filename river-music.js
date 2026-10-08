@@ -2,7 +2,7 @@
 // a plucked lute, recorder and crumhorn leads, a hurdy-gurdy drone, a tabor (a snared frame drum) and a tambourine.
 
 // Melodies are written as note:length, with lengths in steps (each tune sets how long a step is).
-// Chords are one per bar. Each tune plays A A B B, then again with the leads swapped.
+// Chords are one per bar. The default form is A A B B, repeated with the leads swapped; airs can set their own form.
 const MUSIC_TUNES = [
   { name: "The Guildsman's Jig", step: 0.19, bar: 6, feel: "jig", lead: "rec", lead2: "horn", drone: "D", droneV: 0.065,
     A: "D5:2 A4:1 D5:1 E5:1 F5:1 | E5:2 D5:1 C5:2 A4:1 | G4:1 A4:1 B4:1 C5:2 E5:1 | D5:3 A4:3 | D5:2 A4:1 D5:1 E5:1 F5:1 | G5:2 F5:1 E5:2 C5:1 | D5:1 E5:1 F5:1 E5:1 C5:1 A4:1 | D5:6",
@@ -43,7 +43,23 @@ const MUSIC_TUNES = [
     A: "A4:1 C5:1 E5:1 A5:2 E5:1 | G5:2 E5:1 D5:2 B4:1 | C5:1 D5:1 E5:1 F5:2 E5:1 | D5:3 B4:3 | A4:1 C5:1 E5:1 A5:2 G5:1 | F5:2 E5:1 D5:2 C5:1 | B4:1 C5:1 D5:1 E5:2 G#4:1 | A4:6",
     Ac: "Am G F G Am Dm E Am",
     B: "E5:2 A5:1 G5:2 E5:1 | F5:2 D5:1 E5:2 C5:1 | D5:2 G5:1 F5:2 D5:1 | E5:3 E4:3 | A4:1 B4:1 C5:1 D5:2 E5:1 | F5:1 E5:1 D5:1 C5:2 A4:1 | B4:2 G#4:1 E4:2 B4:1 | A4:6",
-    Bc: "Am Dm G E Am Dm E Am" }
+    Bc: "Am Dm G E Am Dm E Am" },
+  // New airs for Drakeharbour: a quiet Dorian night, a bright reel, and Kestra's road jig.
+  { name: "The Silver Tide", step: 0.32, bar: 8, feel: "air", lead: "rec", lead2: "rec", drone: "D", droneV: 0.022, form: "ABAB",
+    A: "D5:3 A4:1 C5:2 D5:2 | F5:2 E5:1 D5:1 A4:2 R:2 | G4:2 A4:2 C5:3 D5:1 | E5:6 R:2 | D5:3 E5:1 F5:2 A5:2 | G5:2 F5:2 E5:2 C5:2 | D5:2 A4:2 C5:2 E5:2 | D5:6 R:2",
+    Ac: "Dm Dm C Am Dm G C Dm",
+    B: "A5:3 G5:1 F5:2 E5:2 | D5:2 E5:2 G5:2 R:2 | G5:3 A5:1 G5:2 E5:2 | C5:6 R:2 | F5:2 E5:2 D5:3 A4:1 | B4:2 D5:2 G5:2 E5:2 | F5:2 E5:1 D5:1 C5:2 A4:2 | D5:6 R:2",
+    Bc: "F Dm G C Dm G C Dm" },
+  { name: "Market Day at Drakeharbour", step: 0.15, bar: 8, feel: "reel", lead: "rec", lead2: "horn", drone: "G", droneV: 0.04,
+    A: "G4:1 B4:1 D5:2 B4:1 A4:1 G4:2 | A4:1 B4:1 C5:2 E5:1 D5:1 C5:2 | B4:1 D5:1 G5:2 F#5:1 E5:1 D5:2 | E5:1 D5:1 C5:1 B4:1 A4:2 D5:2 | G4:1 B4:1 D5:2 B4:1 A4:1 G4:2 | C5:1 E5:1 G5:2 E5:1 D5:1 C5:2 | B4:1 A4:1 G4:1 B4:1 A4:2 F#4:2 | G4:6 R:2",
+    Ac: "G Am G D G C D G",
+    B: "D5:1 G5:1 B5:2 A5:1 G5:1 D5:2 | E5:1 G5:1 C6:2 B5:1 A5:1 G5:2 | F#5:1 A5:1 D6:2 C6:1 B5:1 A5:2 | B5:1 A5:1 G5:1 F#5:1 E5:2 D5:2 | G5:2 D5:1 B4:1 C5:2 E5:2 | A5:1 G5:1 F#5:1 E5:1 D5:2 C5:2 | B4:1 D5:1 G5:2 A5:1 F#5:1 D5:2 | G5:6 R:2",
+    Bc: "G C D Em C D D G" },
+  { name: "Kestra's Road", step: 0.205, bar: 6, feel: "jig2", lead: "rec", lead2: "horn", drone: "A", droneV: 0.035,
+    A: "A4:2 B4:1 C5:2 E5:1 | D5:2 B4:1 G4:2 B4:1 | A4:1 C5:1 E5:1 G5:2 E5:1 | D5:3 B4:2 R:1 | A4:2 B4:1 C5:2 E5:1 | F#5:2 E5:1 D5:2 B4:1 | C5:1 B4:1 A4:1 G4:1 E4:1 G4:1 | A4:6",
+    Ac: "Am G Am G Am D G Am",
+    B: "E5:2 G5:1 A5:2 G5:1 | F#5:2 D5:1 E5:2 C5:1 | D5:1 E5:1 F#5:1 A5:2 F#5:1 | G5:3 E5:2 R:1 | A5:1 G5:1 E5:1 D5:2 B4:1 | C5:2 E5:1 G5:2 E5:1 | D5:1 C5:1 B4:1 G4:2 B4:1 | A4:6",
+    Bc: "Am D D Em G Am G Am" },
 ];
 
 // The lute's part for each kind of tune: [step, strings, loudness, strummed]. Strings are
@@ -52,6 +68,8 @@ const MUSIC_LUTE = {
   jig: [[0, "b", 0.2], [0, "rtf", 0.22, 1], [3, "q", 0.15], [3, "rtf", 0.14, 1]],
   jig2: [[0, "b", 0.2], [0, "rtf", 0.2, 1], [3, "q", 0.15], [4, "rt", 0.11, 1]],
   dance3: [[0, "b", 0.2], [0, "rtfR", 0.22, 1], [2, "tf", 0.12, 1], [4, "tf", 0.12, 1]],
+  air: [[0, "b", 0.16], [2, "r", 0.18], [3, "f", 0.13], [4, "t", 0.16], [6, "q", 0.12]],
+  reel: [[0, "b", 0.2], [1, "rtf", 0.16, 1], [2, "q", 0.13], [3, "tf", 0.12, 1], [4, "b", 0.17], [5, "rtf", 0.14, 1], [6, "q", 0.13], [7, "tf", 0.1, 1]],
   ballad: [[0, "b", 0.22], [1, "q", 0.16], [2, "r", 0.24], [3, "t", 0.24], [4, "f", 0.24], [5, "t", 0.22], [6, "r", 0.22], [7, "q", 0.15]]
 };
 // The drum's part: the first time through, then the second (with the tambourine).
@@ -59,6 +77,8 @@ const MUSIC_DRUM = {
   jig: [[[0, "dum", 0.57], [2, "tek", 0.14], [3, "dum", 0.38], [5, "tek", 0.14]], [[1, "jingle", 0.08], [4, "jingle", 0.08]]],
   jig2: [[[0, "dum", 0.57], [1, "tek", 0.11], [3, "dum", 0.41], [4, "tek", 0.11], [5, "tek", 0.11]], [[2, "jingle", 0.08], [5, "jingle", 0.07]]],
   dance3: [[[0, "dum", 0.57], [2, "tek", 0.14], [4, "tek", 0.14]], [[3, "jingle", 0.08]]],
+  air: [[], []],
+  reel: [[[0, "dum", 0.42], [2, "tek", 0.1], [4, "dum", 0.3], [6, "tek", 0.1]], [[3, "jingle", 0.06], [7, "jingle", 0.06]]],
   ballad: [[[0, "dum", 0.42], [4, "dum", 0.28]], [[6, "tek", 0.08]]]
 };
 
@@ -86,7 +106,7 @@ function musicArrange(T) {
     for (const n of musicLine(T[s])) { if (n.m >= 0) ev.push({ t: t + x * sd, k: lead, m: n.m, d: n.d * sd, v: lead === "rec" ? 0.2 : 0.13 }); x += n.d; }
     const chords = T[s + "c"].split(" ");
     chords.forEach((c, b) => {
-      const bt = t + b * T.bar * sd, ch = musicChord(c), ring = T.bar * sd * (T.feel === "ballad" ? 0.6 : 1.1);
+      const bt = t + b * T.bar * sd, ch = musicChord(c), ring = T.bar * sd * ((T.feel === "ballad" || T.feel === "air") ? 0.6 : 1.1);
       for (const [st, strings, v, strum] of MUSIC_LUTE[T.feel]) [...strings].forEach((w, j) => ev.push({ t: bt + st * sd + (strum ? j * 0.017 : 0), k: "lute", m: ch[w], d: ring, v }));
       const [first, extra] = MUSIC_DRUM[T.feel];
       for (const [st, kind, v] of pass ? first.concat(extra) : first) ev.push({ t: bt + st * sd, k: kind, v });
@@ -313,6 +333,7 @@ const Music = {
   ctx: null,
   band: null,
   timer: 0,
+  requested: null,
   // the slider is shaped so that its lower half is properly quiet
   gain() { return this.MAXGAIN * Math.pow(this.volume, 1.75); },
   init() {
@@ -357,7 +378,11 @@ const Music = {
   start() {
     if (this.band || !this.ensure()) return;
     this.band = new MusicBand(this.ctx, this.ctx.destination, this.gain());
-    this.order = MUSIC_TUNES.map((_, i) => i).sort(() => Math.random() - 0.5);
+    this.order = MUSIC_TUNES.map((_, i) => i);
+    for (let i = this.order.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.order[i], this.order[j]] = [this.order[j], this.order[i]];
+    }
     this.oi = 0;
     this.next(this.ctx.currentTime + 0.4);
     this.timer = setInterval(() => this.tick(), 80);
@@ -367,11 +392,23 @@ const Music = {
     this.timer = 0;
     if (this.band) { this.band.fadeOut(); this.band = null; }
   },
+  // A selection plays next, then the normal shuffled programme continues. Muting stays respected.
+  choose(index) {
+    if (!Number.isInteger(index) || index < 0 || index >= MUSIC_TUNES.length) return;
+    this.requested = index;
+    this.stop();
+    this.ensure();
+    this.refresh();
+    document.dispatchEvent(new Event("musicchange"));
+  },
   next(t) {
-    this.tune = MUSIC_TUNES[this.order[this.oi++ % this.order.length]];
+    const index = this.requested == null ? this.order[this.oi++ % this.order.length] : this.requested;
+    this.requested = null;
+    this.tune = MUSIC_TUNES[index];
     this.cur = musicArrange(this.tune);
     this.t0 = t;
     this.i = 0;
+    document.dispatchEvent(new Event("musicchange"));
   },
   tick() {
     if (!this.band) return;

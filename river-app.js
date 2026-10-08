@@ -267,6 +267,7 @@ class App {
     $("btn-hint").onclick = e => { e.currentTarget.blur(); this.showHint(); };
     $("mixer").innerHTML = `<div class="mx-row mx-sw"><span>Sound</span><button class="mx-toggle" id="mx-sound" role="switch"><i></i></button><b id="mx-sound-v"></b></div>` + this.volRows();
     $("mx-sound").onclick = () => { Music.setSound(!Music.sound); this.audioUi(); };
+    document.addEventListener("musicchange", () => this.audioUi());
     this.wireVols($("mixer"));
     $("mixer").addEventListener("pointerdown", e => e.stopPropagation());
     document.addEventListener("pointerdown", () => this.toggleMixer(false));
@@ -305,6 +306,10 @@ class App {
   fit() {
     const s = Math.min(innerWidth / 1600, innerHeight / 900);
     this.scale = s;
+    // Reveal extra countryside at the same scale as the original, fixed town map.
+    const sceneWidth = Math.max(1600, innerWidth / s);
+    $("stage").style.setProperty("--scene-width", `${sceneWidth}px`);
+    $("stage").classList.toggle("wide-scene", sceneWidth > 1600.5);
     $("stage").style.transform = `translate(${Math.round((innerWidth - 1600 * s) / 2)}px, ${Math.round((innerHeight - 900 * s) / 2)}px) scale(${s})`;
   }
 
@@ -362,9 +367,15 @@ class App {
   // Volume sliders for the music and the effects: on the start screen, and under the music button.
   volRows() {
     const row = (k, label) => `<div class="mx-row"><span>${label}</span><input type="range" class="vol" data-k="${k}" min="0" max="100" step="1" aria-label="${label} volume"><b class="vol-v" data-k="${k}"></b></div>`;
-    return row("sfx", "Game") + row("music", "Music") + row("amb", "Ambient");
+    const tunes = MUSIC_TUNES.map((t, i) => `<option value="${i}">${t.name}</option>`).join("");
+    return row("sfx", "Game") + row("music", "Music") + row("amb", "Ambient")
+      + `<div class="mx-row mx-tune"><span>Tune</span><select class="music-pick" aria-label="Choose a tune"><option value="" disabled>Choose a tune</option>${tunes}</select></div>`
+      + `<div class="mx-note music-now" aria-live="polite"></div>`;
   }
   wireVols(root) {
+    root.querySelectorAll("select.music-pick").forEach(sel => {
+      sel.onchange = () => { if (sel.value !== "") Music.choose(Number(sel.value)); };
+    });
     root.querySelectorAll("input.vol").forEach(inp => {
       const k = inp.dataset.k;
       inp.value = Math.round(100 * (k === "music" ? (Music.on ? Music.volume : 0) : k === "amb" ? Ambience.volume : Sfx.volume));
@@ -386,11 +397,23 @@ class App {
   }
 
   audioUi() {
+    const queued = Music.requested == null ? null : MUSIC_TUNES[Music.requested];
+    const current = queued || Music.tune;
+    document.querySelectorAll("select.music-pick").forEach(sel => {
+      sel.value = current ? String(MUSIC_TUNES.indexOf(current)) : "";
+    });
+    document.querySelectorAll(".music-now").forEach(el => {
+      el.textContent = queued ? `Queued: ${queued.name}` : Music.playing() && Music.band && current ? `Playing: ${current.name}` : "Music paused. Turn on Sound and raise Music to listen.";
+    });
     const s = $("btn-sound"), on = Music.on && Music.volume > 0;
     const lvl = k => (k === "music" ? (on ? Music.volume : 0) : k === "amb" ? Ambience.volume : Sfx.volume);
     document.querySelectorAll("b.vol-v").forEach(b => { const v = lvl(b.dataset.k); b.textContent = v ? Math.round(v * 100) + "%" : "off"; });
     document.querySelectorAll("input.vol").forEach(i => { if (document.activeElement !== i) i.value = Math.round(100 * lvl(i.dataset.k)); });
-    s.innerHTML = Music.sound ? ICONS.sound : ICONS.muted;
+    // Starting music on pointerdown must not replace the icon beneath the pointer before click.
+    if (s.dataset.sound !== String(Music.sound)) {
+      s.innerHTML = Music.sound ? ICONS.sound : ICONS.muted;
+      s.dataset.sound = String(Music.sound);
+    }
     s.dataset.tip = `<b>Sound: ${Music.sound ? "on" : "off"}</b><br>Click to switch it on or off, or set the game, music and ambient volumes.`;
     s.classList.toggle("muted", !Music.sound);
     const sw = $("mx-sound");
