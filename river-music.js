@@ -432,7 +432,30 @@ const Sfx = {
     if (this.bus) this.bus.gain.value = this.busGain();
   },
   busGain() { return 1.25 * this.volume * this.volume; },
-  ready() { return Music.sound && this.volume > 0 && Music.ctx && Music.ctx.state === "running" ? Music.ctx : null; },
+  ready() { const c = Music.sound && this.volume > 0 && Music.ctx && Music.ctx.state === "running" ? Music.ctx : null; if (c && !this.loaded) this.loadSamples(c); return c; },
+  // Recorded sounds (sounds-data.js, made by tools/make-sounds.py), decoded once the audio is running.
+  samples: {},
+  loaded: false,
+  loadSamples(c) {
+    this.loaded = true;
+    if (typeof SOUND_DATA === "undefined") return;
+    for (const [k, url] of Object.entries(SOUND_DATA)) {
+      try {
+        const bin = atob(url.split(",")[1]), a = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+        c.decodeAudioData(a.buffer).then(b => { this.samples[k] = b; }).catch(() => {});
+      } catch (e) { /* the synthesized sound stands in */ }
+    }
+  },
+  // play a recorded sound: at a level, and a little higher or lower than recorded
+  sample(c, t, k, gain, rate = 1) {
+    const b = this.samples[k];
+    if (!b) return false;
+    const s = c.createBufferSource(), g = c.createGain();
+    s.buffer = b; s.playbackRate.value = rate; g.gain.value = gain;
+    s.connect(g); g.connect(this.out(c)); s.start(t);
+    return true;
+  },
   // at most one of each sound every few hundredths of a second, so a handful of cards is one sound
   gate(k, ms) { const n = performance.now(), prev = this.last[k]; if (prev != null && n - prev < ms) return false; this.last[k] = n; return true; },
   // everything goes through one bus (the Effects volume); what the other players do goes through a quieter
@@ -568,6 +591,83 @@ const Sfx = {
     this.burst(c, t, 0.06, "bandpass", 900, 700, 2, 0.08);
     this.osc(c, t + 0.1, "sine", 190, 130, 0.09, 0.05);
     this.burst(c, t + 0.1, 0.04, "bandpass", 850, 650, 2, 0.04);
+  }); },
+  // ---------------------------------------------------------------- resources arriving, one sound each
+  // (short, quiet and a little different every time, as several may land together)
+  res(r) { [this.gold, this.steel, this.faith, this.lore][r].call(this); },
+  // Gold: a coin's chink
+  gold() { this.play("rgold", 55, (c, t) => {
+    const k = 0.92 + Math.random() * 0.16;
+    this.partials(c, t, 2700 * k, [[1, 0.044, 0.18], [1.52, 0.028, 0.12], [2.41, 0.016, 0.07]]);
+    this.partials(c, t + 0.045, 3100 * k, [[1, 0.024, 0.12], [1.47, 0.014, 0.08]]);
+    this.burst(c, t, 0.02, "highpass", 6000, 6000, 0.7, 0.06);
+  }); },
+  // Steel: one strike on the anvil, lighter than the Forge's
+  steel() { this.play("rsteel", 70, (c, t) => {
+    const k = 0.95 + Math.random() * 0.1;
+    this.burst(c, t, 0.025, "highpass", 3000, 3000, 0.7, 0.1);
+    this.partials(c, t, 1050 * k, [[1, 0.028, 0.45], [1.47, 0.02, 0.32], [2.09, 0.014, 0.22], [2.76, 0.008, 0.15]]);
+  }); },
+  // Faith: a short choir "aah" (the recorded one, a little higher or lower each time; or, until it's
+  // loaded, three synthesized voices through the formants of an open vowel)
+  faith() { this.play("rfaith", 160, (c, t) => {
+    if (this.sample(c, t, "choir", 0.12, [1, 1.059, 0.944][Math.floor(Math.random() * 3)])) return;
+    const out = this.out(c), k = [1, 1.122, 0.891][Math.floor(Math.random() * 3)];
+    const mix = c.createGain(); mix.gain.value = 1;
+    for (const [f, q, lv] of [[750, 7, 1], [1150, 9, 0.55], [2850, 12, 0.22]]) {
+      const bp = c.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = f; bp.Q.value = q;
+      const g = c.createGain(); g.gain.value = lv;
+      mix.connect(bp); bp.connect(g); g.connect(out);
+    }
+    for (const [f, d] of [[220, 0], [277.2, 0.01], [329.6, 0.02], [440, 0.03]])
+      for (const det of [-5, 5]) this.osc(c, t + d, "sawtooth", f * k * Math.pow(2, det / 1200), 0, 0.75, 0.12, { attack: 0.11, vib: [5.2, 2.2], dest: mix });
+  }); },
+  // Lore: a quill's quick scratch
+  lore() { this.play("rlore", 70, (c, t) => {
+    [[0, 0.05, 4200, 5600], [0.065, 0.04, 5000, 3800], [0.12, 0.06, 3900, 5200]].forEach(([d, dur, f0, f1]) => this.burst(c, t + d, dur, "bandpass", f0, f1, 2.2, 0.34));
+  }); },
+  // ---------------------------------------------------------------- quests and spells
+  // a quest taken: parchment drawn across the table and set down
+  parchment() { this.play("parch", 150, (c, t) => {
+    this.burst(c, t, 0.18, "bandpass", 1600, 3200, 1.1, 0.22);
+    this.burst(c, t + 0.15, 0.12, "bandpass", 2800, 1500, 1.0, 0.16);
+    this.osc(c, t + 0.24, "sine", 180, 120, 0.06, 0.06);
+  }); },
+  // a quest torn up: a rip
+  rip() { this.play("rip", 200, (c, t) => {
+    for (let i = 0; i < 9; i++) this.burst(c, t + i * 0.022 + Math.random() * 0.008, 0.035, "bandpass", 1800 + i * 260, 2400 + i * 300, 1.6, 0.2 - i * 0.01);
+    this.burst(c, t, 0.24, "highpass", 2500, 4500, 0.7, 0.025);
+  }); },
+  // each spell its own sound
+  castOf(k) {
+    if (k === "scry") this.scry();
+    else if (k === "recall") this.recall();
+    else if (k === "haggle") this.haggle();
+    else if (k === "renew") this.renew();
+    else this.spell();
+  },
+  // Scry: a crystal's shimmer
+  scry() { this.play("scry", 300, (c, t) => {
+    [[1568, 0], [2093, 0.06], [2637, 0.12], [3136, 0.18], [2637, 0.26]].forEach(([f, d]) => this.osc(c, t + d, "sine", f, f, 0.7, 0.026, { attack: 0.03, vib: [7, 9] }));
+  }); },
+  // Recall: a swoosh that runs backwards, from the pile to your hand
+  recall() { this.play("recall", 300, (c, t) => {
+    const s = this.noise(c), f = c.createBiquadFilter(), g = c.createGain();
+    f.type = "bandpass"; f.Q.value = 1.1;
+    f.frequency.setValueAtTime(700, t); f.frequency.exponentialRampToValueAtTime(3200, t + 0.32);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.36);
+    s.connect(f); f.connect(g); g.connect(this.out(c)); s.start(t, Math.random() * 0.4); s.stop(t + 0.4);
+    this.osc(c, t + 0.3, "sine", 1319, 1319, 0.25, 0.024);
+  }); },
+  // Haggle: coins shuffled on a counter
+  haggle() { this.play("haggle", 300, (c, t) => {
+    [0, 0.05, 0.09, 0.16, 0.2].forEach(d => this.partials(c, t + d, 1900 + Math.random() * 700, [[1, 0.04, 0.1], [1.5, 0.022, 0.07]]));
+    this.burst(c, t, 0.26, "bandpass", 2400, 2000, 0.8, 0.06);
+  }); },
+  // Renew: a small bright bell
+  renew() { this.play("renew", 300, (c, t) => {
+    this.partials(c, t, 1320, [[1, 0.034, 1.0], [2, 0.015, 0.7], [2.76, 0.008, 0.45]]);
+    this.partials(c, t + 0.14, 1760, [[1, 0.02, 0.8], [2, 0.008, 0.5]]);
   }); },
   // the Harbour: a wave against the quay, and a gull
   harbour() { this.play("harbour", 300, (c, t) => {

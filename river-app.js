@@ -692,7 +692,7 @@ class App {
     const games = [
       { key: "artifact", devices: "Mobile & desktop", title: "Artifact", description: "Tactical space rummy. Collect planet cards and steer a probe to discover alien artifacts, playing against up to three computer opponents." },
       { key: "oh-hell-extended", devices: "Mobile & desktop", title: "Oh Hell! Extended", description: "Bid your tricks, then win exactly that many. Play classic Oh Hell or add Suns, Moons, Dragons and Jokers, against up to four computer opponents." },
-      { key: "german-whist", devices: "Desktop", image: "german-whist-v2", title: "German Whist", description: "Build your hand, then battle for tricks in this classic two-player card game. Choose from three computer skill levels." }
+      { key: "german-whist", devices: "Mobile & desktop", image: "german-whist-v2", title: "German Whist", description: "Build your hand, then battle for tricks in this classic two-player card game. Choose from four computer skill levels." }
     ];
     this.panel(`<h2>More card games</h2><p class="games-intro">Other games by BugVictim.</p>
       <div class="other-games">${games.map(game => `<article class="other-game">
@@ -1052,7 +1052,7 @@ class App {
       leg(to, ms);
       await wait(ms + 20);
       el.remove();
-      if (kind === "tok") Sfx.clink(); else if (kind === "pawn") Sfx.step(); else if (!f.quiet) Sfx.flick();
+      if (kind === "tok") (f.res != null ? Sfx.res(f.res) : Sfx.clink()); else if (kind === "pawn") Sfx.step(); else if (!f.quiet) Sfx.flick();
     }
     if (toEl) toEl.classList.remove("hidden-for-flight");
     if (f.land) f.land();
@@ -1065,7 +1065,7 @@ class App {
     const deckBox = () => this.box(this.q("#deck .slot")), discBox = () => this.box(this.q("#discard .slot"));
     const token = (who, r, from, opts = {}) => {
       fx.pend.push({ p: who, r });
-      F.push(Object.assign({ make: () => tokEl(r), from, toFn: () => this.resTok(who, r), ms: 420,
+      F.push(Object.assign({ make: () => tokEl(r), res: r, from, toFn: () => this.resTok(who, r), ms: 420,
         land: () => { const i = this.fx.pend.findIndex(x => x.p === who && x.r === r); if (i >= 0) this.fx.pend.splice(i, 1); this.updateCounts(); this.pop(this.resTok(who, r)); } }, opts));
     };
     // a card arriving in p's hand: face up in yours, face down in theirs unless it came off the discard pile
@@ -1113,7 +1113,7 @@ class App {
         toDiscard(c);
         { const drew = e.snap.players[p].hand.length - (e.pre.pl[p].hand.length - 1) - (k === "scry" ? e.snap.o.scryDraw || 2 : k === "recall" ? 1 : 0);
           if (e.snap.perkOf(p) === "grimoire" && (drew > 0 || e.snap.t.spells > 1)) this.perkFlash(p === 0 ? deckBox() : this.box(this.seat(p)), e.snap, p, 250, drew <= 0); }
-        Sfx.spell();
+        Sfx.castOf(k);
         if (k === "blink") {
           Sfx.whoosh();
           fx.pawn = p;
@@ -1136,8 +1136,11 @@ class App {
         break;
       case "work": {
         const sp = e.pre.pl[p].pos, m = this.box(this.q(`.place[data-sp="${sp}"] .medal`));
-        if (sp === TAVERN) (e.args[1] === "sealed" ? Sfx.crack() : Sfx.mug());
-        else ({ [MARKET]: () => Sfx.coins(), [FORGE]: () => Sfx.anvil(), [TEMPLE]: () => Sfx.templeBell(), [LIBRARY]: () => Sfx.page(), [HARBOUR]: () => Sfx.harbour() })[sp]();
+        if (sp === TAVERN) {
+          if (e.args[1] === "sealed") { Sfx.crack(); setTimeout(() => Sfx.parchment(), 220 * SPEED); } else Sfx.parchment();
+          if (e.pre.pl[p].quests.length > e.snap.players[p].quests.length - 1) setTimeout(() => Sfx.rip(), 120 * SPEED);
+        }
+        else if (sp === HARBOUR) Sfx.harbour();
         const at = m && { cx: m.cx, cy: m.cy, w: 30, h: 30 };
         if (PRODUCES[sp] >= 0) {
           const r = PRODUCES[sp], got = e.snap.players[p].res[r] - e.pre.pl[p].res[r];
