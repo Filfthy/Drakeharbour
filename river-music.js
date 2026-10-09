@@ -347,14 +347,21 @@ const Music = {
     document.addEventListener("pointerdown", () => this.ensure() && this.refresh());
     document.addEventListener("visibilitychange", () => {
       if (!this.ctx) return;
-      if (document.hidden) this.ctx.suspend(); else if (this.sound) this.ctx.resume();
+      if (document.hidden) this.ctx.suspend(); else if (this.sound && !this.gated) this.ctx.resume();
     });
+  },
+  // Silence while the "Click for fullscreen" screen is up, and wake again when it goes.
+  setGated(on) {
+    this.gated = on;
+    if (!this.ctx) return;
+    if (on) this.ctx.suspend();
+    else if (this.sound && !document.hidden) { const p = this.ctx.resume(); this.refresh(); if (p && p.then) p.then(() => this.refresh(), () => {}); }
   },
   ensure() {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
-    if (!this.ctx) this.ctx = new AC();
-    if (this.ctx.state === "suspended" && !document.hidden) this.ctx.resume();
+    if (!this.ctx) { this.ctx = new AC(); if (this.gated) this.ctx.suspend(); }
+    if (this.ctx.state === "suspended" && !document.hidden && !this.gated) this.ctx.resume();
     return this.ctx;
   },
   save() {

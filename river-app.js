@@ -293,7 +293,8 @@ class App {
     window.addEventListener("blur", () => $("stage").classList.remove("peek"));
     document.addEventListener("fullscreenchange", () => this.fullUi());
     document.addEventListener("webkitfullscreenchange", () => this.fullUi());
-    window.addEventListener("resize", () => this.fit());
+    $("fsgate").onclick = () => this.gateFull();
+    window.addEventListener("resize", () => { this.fit(); this.gateUi(); });
     $("nightlights").innerHTML = SCENE.lights.map(([x, y, r]) =>
       `<i style="left:${x * MAP_K}px;top:${y * MAP_K}px;width:${r * 4}px;height:${r * 4}px"></i>`).join("")
       + `<div class="lighthouse-lantern" style="left:${447 * MAP_K}px;top:${584 * MAP_K}px">
@@ -445,9 +446,28 @@ class App {
     const b = $("btn-full");
     if (!(document.fullscreenEnabled || document.webkitFullscreenEnabled)) { b.style.display = "none"; return; }
     const on = !!this.fullEl();
+    if (on) this.fsWorked = true;
     b.innerHTML = on ? ICONS.exitFull : ICONS.full;
     b.dataset.tip = on ? "<b>Leave fullscreen</b>" : "<b>Fullscreen</b>";
     [60, 300].forEach(ms => setTimeout(() => this.fit(), ms));
+    this.gateUi();
+  }
+  // Below 1280x720 the town is too small to play, so a window that size shows only "Click for
+  // fullscreen", and a click anywhere goes fullscreen. If the browser can't or won't go fullscreen, the screen steps aside for the rest of the
+  // visit rather than locking anyone out.
+  needGate() { return !this.fsFailed && !!(document.fullscreenEnabled || document.webkitFullscreenEnabled) && !this.fullEl() && (innerWidth < 1280 || innerHeight < 720); }
+  gateUi() {
+    const on = this.needGate();
+    $("fsgate").classList.toggle("hidden", !on);
+    if (!!Music.gated !== on) Music.setGated(on);
+  }
+  gateFull() {
+    const fail = () => { if (!this.fullEl() && !this.fsWorked) { this.fsFailed = true; this.gateUi(); } };
+    try {
+      const r = document.documentElement, p = (r.requestFullscreen || r.webkitRequestFullscreen).call(r);
+      if (p && p.catch) p.catch(fail);
+    } catch (e) { fail(); }
+    setTimeout(fail, 1500);
   }
 
   // ------------------------------------------------------------ panels, questions and the lens
@@ -709,7 +729,6 @@ class App {
     this.panel(`<h2>Credits</h2>
       <p class="credits">Icons from <b>game-icons.net</b> by Lorc, Delapouite, Faithtoken and Quoting, licensed under CC BY 3.0.</p>
       <p class="credits">Cinzel typeface by Natanael Gama, SIL Open Font License.</p>
-      <p class="credits">Music written for the game and played by your browser.</p>
       <p class="credits">© BugVictim 2026</p>
       <div class="btns"><button class="btn" id="b-back">Back</button></div>`);
     $("b-back").onclick = () => this.closePanel();

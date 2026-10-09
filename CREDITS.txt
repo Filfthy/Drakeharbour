@@ -14,9 +14,4 @@ The icons were recoloured (background removed) for use in the game.
 
 Cinzel typeface by Natanael Gama, SIL Open Font License 1.1 (fonts/OFL.txt).
 
-Parchment, wood and leather textures generated for the game (tools/make-textures.py).
-
-Music and sound effects written for the game and synthesised in the browser (river-music.js).
 The choir heard when Faith arrives is "Short Choir" by Breviceps (freesound.org/s/444491), CC0.
-
-Additional countryside panorama generated with OpenAI image generation (art/town-map-wide-v3.png); the original playable town is retained at the centre.
